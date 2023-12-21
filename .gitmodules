@@ -1,0 +1,6 @@
+[submodule "cluster-tap"]
+	path = cluster-tap
+	url = https://github.com/lasso-sustech/cluster-tap.git
+[submodule "stream-replay"]
+	path = stream-replay
+	url = https://github.com/lasso-sustech/stream-replay.git
