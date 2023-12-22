@@ -1,1 +1,4 @@
 /temp
+__pycache__
+/config/topo/*
+/data

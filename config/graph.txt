@@ -1,3 +1,0 @@
-STA1 --WIFI5G-- SoftAP
-STA1 --WIFI2.4G-- SoftAP
-STA2 --WIFI-- SoftAP

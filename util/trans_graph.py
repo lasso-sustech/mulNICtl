@@ -18,6 +18,9 @@ def _list_to_c_array(arr: list, arr_type=ctypes.c_float):
     return (arr_type * len(arr))(*arr)
 ##=======================================================================##
 
+LINK_NAME_TO_TX_NAME = lambda link_name : link_name.split('_')[-2]
+LINK_NAME_TO_RX_NAME = lambda link_name : link_name.split('_')[-1]
+LINK_NAME_TO_PROT_NAME = lambda link_name : '_'.join(link_name.split('_')[0:-2])
 
 class Graph:
     """
@@ -69,9 +72,20 @@ class Graph:
             str: the link name
         """
         link_name = protocol+'_'+device_name+'_'+target_name
+        if device_name not in self.graph.keys():
+            self.ADD_DEVICE(device_name)
+        if target_name not in self.graph.keys():
+            self.ADD_DEVICE(target_name)
         self.graph[device_name].update({link_name: {}})
         self.info_graph[device_name].update({link_name: {'MCS': MCS}})
         return link_name
+    
+    def get_links(self):
+        links = []
+        for device_name, link in self.graph.items():
+            for link_name in link.keys():
+                links.append(link_name)
+        return links
 
     def REMOVE_LINK(self, link_name) -> None:                   # Remove link according to link name
         """
@@ -80,12 +94,11 @@ class Graph:
         Args:
             link_name (str): link name to be removed
         """
-        device_name = link_name.split('_')[1]
+        device_name = LINK_NAME_TO_TX_NAME(link_name)
         del self.graph[device_name][link_name]
         del self.info_graph[device_name][link_name]
 
-    def ADD_STREAM(self, link_name: str, port_number:int, file_name:str, thru:float,
-                   duration:list, tos=32, target_rtt=0, name = '') -> None:
+    def ADD_STREAM(self, link_name: str, port_number:int, stream, tos=32, target_rtt=0, name = '') -> None:
         """
         Add stream to corresponding link 
 
@@ -99,20 +112,11 @@ class Graph:
             target_rtt (int, optional): the QoS required rtt value. Defaults to 0.
             name (str, optional): name of stream, e.g "Speaker A". Defaults to ''.
         """
-        device_name = link_name.split('_')[1]       # from link name to device name
-        if type(port_number) == list:               # Add stream with multiple ports
-            for _port_number in port_number:
-                _name = name if name != '' else str(_port_number)+'@'+str(tos)
-                self.graph[device_name][link_name].update({str(_port_number)+'@'+str(tos): {
-                                                          'file_name': file_name, 'thru': thru, 'throughput': '', "throttle": 0, 'duration': duration}})                 
-                self.info_graph[device_name][link_name].update(
-                    {str(_port_number)+'@'+str(tos): {"target_rtt": target_rtt, 'name': _name, "active": True}})
-        else:
-            _name = name if name != '' else str(port_number)+'@'+str(tos)
-            self.graph[device_name][link_name].update({str(port_number)+'@'+str(tos): {
-                                                      'file_name': file_name, 'thru': thru, 'throughput': '', "throttle": 0, 'duration': duration}})
-            self.info_graph[device_name][link_name].update(
-                {str(port_number)+'@'+str(tos): {"target_rtt": target_rtt, 'name': _name, "active": True}})
+        device_name = LINK_NAME_TO_TX_NAME(link_name)       # from link name to device name
+        _name = name if name != '' else str(port_number)+'@'+str(tos)
+        self.graph[device_name][link_name].update({str(port_number)+'@'+str(tos): stream})
+        self.info_graph[device_name][link_name].update(
+            {str(port_number)+'@'+str(tos): {"target_rtt": target_rtt, 'name': _name, "active": True}})
         pass
 
     def REMOVE_STREAM(self, link_name:str, port_number: int, tos=132) -> None:
@@ -124,7 +128,7 @@ class Graph:
             port_number (int): the port of stream
             tos (int, optional): tos value of this stream. Defaults to 132.
         """
-        device_name = link_name.split('_')[1]
+        device_name = LINK_NAME_TO_TX_NAME(link_name)
         del self.graph[device_name][link_name][str(port_number)+'@'+str(tos)]
         del self.info_graph[device_name][link_name][str(
             port_number)+'@'+str(tos)]
@@ -138,7 +142,7 @@ class Graph:
             stream_name (str): name of stream
             duration (list): [Start point, End point]
         """
-        device_name = link_name.split('_')[1]
+        device_name = LINK_NAME_TO_TX_NAME(link_name)
         self.graph[device_name][link_name][stream_name]['duration'] = duration
 
     def associate_ip(self, device_name:str, protocol:str, ip_addr:str) -> None: 
@@ -161,6 +165,16 @@ class Graph:
         print("="*50)
         print(json.dumps(self.graph, indent=2))
         pass
+
+    def __str__(self) -> str:
+        def object_to_dict(obj):
+            if obj.__class__.__name__ == 'stream':
+                return obj.to_dict()  # 假设你已经在stream类中定义了to_dict方法
+            raise TypeError(f'Type {type(obj).__name__} not serializable')
+        """
+        Display the graph and info graph
+        """
+        return json.dumps(self.info_graph, indent=2) + "\n" + json.dumps(self.graph, indent=2, default=object_to_dict)
 
     # After getting reply, the stream might be deleted
     def update_graph(self, reply:dict) -> None:

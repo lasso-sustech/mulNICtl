@@ -1,6 +1,12 @@
 import json
+import sys
+import os
 from util.trans_graph import Graph
-from util.tap import Connector
+from util.trans_graph import LINK_NAME_TO_TX_NAME, LINK_NAME_TO_RX_NAME, LINK_NAME_TO_PROT_NAME
+current = os.path.dirname(os.path.realpath(__file__))
+parent = os.path.dirname(current)
+sys.path.append(parent)
+from tap import Connector
 
 ## ip setup component
 def _ip_extract_all(graph: Graph):
@@ -30,3 +36,116 @@ def _ip_extract_all(graph: Graph):
 
     return ip_table
 
+def _ip_associate(graph:Graph, ip_table:dict):
+    for device_name in ip_table.keys():
+        _depart_name = device_name.split("-")
+        if len(_depart_name) > 1:
+            _, ind = device_name.split("-")
+            idx = 0
+            for protocol, ip in ip_table[device_name].items():
+                graph.info_graph[device_name].update({"ind": int(ind)})
+                graph.associate_ip(
+                    device_name, protocol, ip
+                )  # default take the previous three as indicator to protocol
+                idx += 1
+        else:
+            for protocol, ip in ip_table[device_name].items():
+                graph.associate_ip(device_name, protocol, ip)
+    return _add_ipc_port(graph)
+
+def _add_ipc_port(graph):
+    """
+    Add ipc port (remote and local) to graph
+    """
+    port = 11112
+    for device_name in graph.graph.keys():
+        for link_name in graph.graph[device_name].keys():
+            graph.info_graph[device_name][link_name].update({"ipc_port": port})
+            graph.info_graph[device_name][link_name].update(
+                {"local_port": port - 1024}
+            )
+            port += 1
+    return graph
+
+
+def _start_replay(graph:Graph, DURATION):
+    """
+    Construct a transmission ready connector waiting to be applied
+    """
+    conn = Connector()
+    # start reception
+    for device_name, links in graph.graph.items():
+        for link_name, streams in links.items():
+            # split link name to protocol, sender, receiver
+            # prot, sender, receiver = link_name.split("_")
+            # receiver = receiver if receiver else ""
+            receiver = LINK_NAME_TO_RX_NAME(link_name)
+            for stream_name, stream in streams.items():
+                # extract port number
+                port_num, tos = stream_name.split("@")
+                if "file" in stream.npy_file:
+                    conn.batch(
+                        receiver,
+                        "outputs_throughput",
+                        {"port": port_num, "duration": DURATION},
+                        timeout= DURATION + 5,
+                    )
+                else:
+                    conn.batch(
+                        receiver,
+                        "outputs_throughput_jitter",
+                        {
+                            "port": port_num,
+                            "duration": DURATION,
+                            "calc_rtt": "--calc-rtt",
+                            "tos": tos,
+                        },
+                        timeout=DURATION + 5,
+                    )
+
+    conn.executor.wait(1)
+    # start transmission
+    for device_name, links in graph.graph.items():
+        for link_name, streams in links.items():
+            if streams == {}:
+                continue
+            # split link name to protocol, sender, receiver
+            sender = LINK_NAME_TO_TX_NAME(link_name)
+            prot = LINK_NAME_TO_PROT_NAME(link_name)
+            receiver = LINK_NAME_TO_RX_NAME(link_name)
+            if receiver:
+                ip_addr = graph.info_graph[receiver][prot + "_ip_addr"]
+            else:
+                ip_addr = "127.0.0.1"
+            conn.batch(
+                sender,
+                "run-replay-client",
+                {
+                    "target_addr": ip_addr,
+                    "duration": DURATION,
+                    "manifest_name": link_name + ".json",
+                    "ipc-port": graph.info_graph[sender][link_name][
+                        "ipc_port"
+                    ],
+                },
+                timeout= DURATION + 5,
+            )
+
+    return conn.executor.wait(DURATION + 5)
+
+def fileTransfer(graph, target_ip, output_folder):
+    isSend = False
+    conn = Connector()
+    import threading
+    from tools.file_rx import receiver
+    port = 15555
+    threading.Thread(target=receiver, args=(target_ip, port, output_folder,)).start()
+    for device_name, links in graph.graph.items():
+        for link_name, streams in links.items():
+            if not isSend:
+                prot, sender, receiver = link_name.split("_")
+                conn.batch(sender, "send_file", {"target_ip": target_ip, "file_name": "../stream-replay/logs/rtt-*.txt"})
+                isSend = True
+
+    conn.executor.wait(0.5).apply()
+    

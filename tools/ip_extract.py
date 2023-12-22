@@ -7,7 +7,6 @@ import psutil
 def get_ip():
     addrs = psutil.net_if_addrs()
     info = []
-    print(addrs)
     for key in addrs.keys():
         for addr in addrs[key]:
             if addr.family == 2:
