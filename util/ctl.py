@@ -148,4 +148,18 @@ def fileTransfer(graph, target_ip, output_folder):
                 isSend = True
 
     conn.executor.wait(0.5).apply()
+
+def rtt_read(graph):
+    conn = Connector()
+    for device_name, links in graph.graph.items():
+        for link_name, streams in links.items():
+            if streams == {}:
+                continue
+            # split link name to protocol, sender, receiver
+            sender = LINK_NAME_TO_TX_NAME(link_name)
+            for stream_name, stream in streams.items():
+                # extract port number
+                port_num, tos = stream_name.split("@")
+                conn.batch(sender, "read_rtt", {"port": port_num, "tos": tos})
+    return conn.executor.wait(0.5).fetch().apply()
     

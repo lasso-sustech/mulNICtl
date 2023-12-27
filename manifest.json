@@ -2,15 +2,10 @@
     "name": "",
     "codebase": {
         "manifest": "manifest.json",
-        "udp_rx": "stream-replay/udp_rx.py",
         "data": "stream-replay/data/*",
         "src": "stream-replay/src/*",
-        "tool_read_rtt": "tools/read_mcs.py",
         "tool":"tools/*",
-        "cargo_lock":"stream-replay/Cargo.lock",
-        "cargo_toml":"stream-replay/Cargo.toml",
-        "tap_file":"tap.py",
-        "modifier":"wlsops-hack/modify_edca.py"
+        "util": "util/*"
     },
     "functions": {
         "outputs_throughput": {
@@ -198,11 +193,10 @@
             },
             "outputs": {
                 "rtt": {
-                    "cmd":"(cd tools; python3 read_rtt.py $port $tos ; rm -f stream-replay/logs/rtt-$port@$tos.txt)",
+                    "cmd":"(cd tools; python3 read_rtt.py -f ../stream-replay/logs/rtt-$port@$tos.txt ; rm -f stream-replay/logs/rtt-$port@$tos.txt)",
                     "format":"(\\d+\\.\\d+)"
                 }
             }
-
         },
         "read_ip_addr":{
             "description": "read p2p or wlan ipv4 addr",

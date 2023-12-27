@@ -61,6 +61,17 @@ class stream:
         content['tx_ipaddrs'] = list(set(content['tx_ipaddrs']+self.tx_ipaddrs))
         with open(file_addr, 'w') as f:
             json.dump(content, f, indent=2)
+    
+    def read_from_manifest(self, file_addr):
+        with open(file_addr, 'r') as f:
+            content = json.load(f)
+        stream_param = content['streams'][-1]
+        for i in stream_param:
+            if i in self.__dict__:
+                self.__setattr__(i, stream_param[i])
+            else:
+                print(f'Warning: {i} not found in stream')
+        return self
 
 def create_parse(parser: argparse.ArgumentParser):
     temp = stream()

@@ -13,6 +13,7 @@ def write_remote_stream(_stream:stream, sender:str, manifest_name:str):
 # Graph
 topo = construct_graph("./config/topo/lo.txt")
 
+
 # IP extractor
 ip_table = ctl._ip_extract_all(topo)
 ctl._ip_associate(topo, ip_table)
@@ -22,17 +23,19 @@ temp = stream.stream()
 temp.calc_rtt = True
 temp.tx_ipaddrs = ["127.0.0.1"]; temp.tx_parts = [1]
 links = topo.get_links()
-topo.ADD_STREAM(links[0], 6201, temp)
+topo.ADD_STREAM(links[0], 6203, temp, temp.tos)
 print(topo)
 
-# Write to remote sender
+print(ctl.rtt_read(topo))
+
+# # Write to remote sender
 # write_remote_stream(temp, LINK_NAME_TO_TX_NAME(links[0]), links[0])
 
-# start remote receiver
-conn = ctl._start_replay(graph=topo, DURATION=1)
-print(conn.fetch().apply())
+# # start remote receiver
+# conn = ctl._start_replay(graph=topo, DURATION=1)
+# print(conn.fetch().apply())
 
-ctl.fileTransfer(topo, '127.0.0.1', './data')
-# Add stream to link of topo
+# # Fetch results (whole data)
+# ctl.fileTransfer(topo, '127.0.0.1', './data'
 
 

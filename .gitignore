@@ -1,4 +1,5 @@
 /temp
 __pycache__
 /config/topo/*
+/config/stream/*
 /data
