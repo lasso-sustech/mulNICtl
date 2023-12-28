@@ -1,4 +1,16 @@
+import json
+class dataStruct:
+    def __init__(self, rttDict):
+        self.channel_rtts = [rttDict['rtt'][1], rttDict['rtt'][2]]
+        self.channel_probabilities = [rttDict['rtt'][3], rttDict['rtt'][4]]
 
+    def __str__(self) -> str:
+        return json.dumps(self.__dict__, indent=2)
+    
+    def to_dict(self):
+        return self.__dict__
+
+    
 class opStruct:
     def __init__(self):
         self.min_step = 0.05

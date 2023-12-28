@@ -23,7 +23,7 @@ temp = stream.stream()
 temp.calc_rtt = True
 temp.tx_ipaddrs = ["127.0.0.1"]; temp.tx_parts = [1]
 links = topo.get_links()
-topo.ADD_STREAM(links[0], 6203, temp, temp.tos)
+topo.ADD_STREAM(links[0], temp.port, temp, temp.tos, target_rtt=18)
 print(topo)
 
 print(ctl.rtt_read(topo))

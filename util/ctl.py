@@ -3,6 +3,7 @@ import sys
 import os
 from util.trans_graph import Graph
 from util.trans_graph import LINK_NAME_TO_TX_NAME, LINK_NAME_TO_RX_NAME, LINK_NAME_TO_PROT_NAME
+from util.solver import dataStruct
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
 sys.path.append(parent)
@@ -161,5 +162,18 @@ def rtt_read(graph):
                 # extract port number
                 port_num, tos = stream_name.split("@")
                 conn.batch(sender, "read_rtt", {"port": port_num, "tos": tos})
-    return conn.executor.wait(0.5).fetch().apply()
-    
+    results = conn.executor.wait(0.5).fetch().apply()
+
+    idx = 0
+    for device_name, links in graph.graph.items():
+        for link_name, streams in links.items():
+            if streams == {}:
+                continue
+            # split link name to protocol, sender, receiver
+            for stream_name, stream_handle in streams.items():
+                data = dataStruct(results[idx])
+                graph.info_graph[device_name][link_name][stream_name].update(
+                    {"channel_val": data}
+                )
+                idx += 1
+    return graph

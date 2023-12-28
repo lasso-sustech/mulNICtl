@@ -168,13 +168,13 @@ class Graph:
 
     def __str__(self) -> str:
         def object_to_dict(obj):
-            if obj.__class__.__name__ == 'stream':
-                return obj.to_dict()  # 假设你已经在stream类中定义了to_dict方法
+            if obj.__class__.__name__ == 'stream' or 'dataStruct': # automatically determine this
+                return obj.to_dict()  
             raise TypeError(f'Type {type(obj).__name__} not serializable')
         """
         Display the graph and info graph
         """
-        return json.dumps(self.info_graph, indent=2) + "\n" + json.dumps(self.graph, indent=2, default=object_to_dict)
+        return json.dumps(self.info_graph, indent=2, default=object_to_dict) + "\n" + json.dumps(self.graph, indent=2, default=object_to_dict)
 
     # After getting reply, the stream might be deleted
     def update_graph(self, reply:dict) -> None:
