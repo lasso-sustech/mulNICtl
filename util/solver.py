@@ -16,18 +16,23 @@ class opStruct:
         self.min_step = 0.05
         self.tx_parts = [1,1] # [100% send by tx1, 0% send by tx2]
         self.inc_direction = [1, -1]
-        self.rtt_feedback = [0, 0]
-        self.probability_feedback = [0 , 0]
+        self.channel_rtts = [0, 0]
+        self.channel_probabilities = [0 , 0]
         self.epsilon_rtt = 0.1
         self.epsilon_prob_upper = 0.3 # probability that packet send all the packet
         self.epsilon_prob_lower = 0.1  # probability that packet do not send all the packet
 
+    def update(self, data:dataStruct):
+        self.channel_rtts = data.channel_rtts
+        self.channel_probabilities = data.channel_probabilities
+        return self
+
     def load_balance(self):
         assert(self.tx_parts[0] == self.tx_parts[1])
-        if abs(self.rtt_feedback[0] - self.rtt_feedback[1]) < self.epsilon_rtt:
+        if abs(self.channel_rtts[0] - self.channel_rtts[1]) < self.epsilon_rtt:
             return self
         else:
-            self.tx_parts[0] += self.min_step if self.rtt_feedback[0] < self.rtt_feedback[1] else -self.min_step
+            self.tx_parts[0] += self.min_step if self.channel_rtts[0] < self.channel_rtts[1] else -self.min_step
             self.tx_parts[1] = self.tx_parts[0]
             return self
     
