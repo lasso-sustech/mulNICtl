@@ -98,7 +98,7 @@ class Graph:
         del self.graph[device_name][link_name]
         del self.info_graph[device_name][link_name]
 
-    def ADD_STREAM(self, link_name: str, port_number:int, stream, tos=32, target_rtt=0, name = '') -> None:
+    def ADD_STREAM(self, link_name: str, stream, target_rtt=0, name = '') -> None:
         """
         Add stream to corresponding link 
 
@@ -112,6 +112,7 @@ class Graph:
             target_rtt (int, optional): the QoS required rtt value. Defaults to 0.
             name (str, optional): name of stream, e.g "Speaker A". Defaults to ''.
         """
+        port_number = stream.port; tos = stream.tos
         device_name = LINK_NAME_TO_TX_NAME(link_name)       # from link name to device name
         _name = name if name != '' else str(port_number)+'@'+str(tos)
         self.graph[device_name][link_name].update({str(port_number)+'@'+str(tos): stream})

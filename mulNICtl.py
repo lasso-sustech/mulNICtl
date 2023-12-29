@@ -21,21 +21,17 @@ ctl._ip_associate(topo, ip_table)
 # Create Stream
 temp = stream.stream()
 temp.calc_rtt = True
-temp.tx_ipaddrs = ["127.0.0.1"]; temp.tx_parts = [1]
+temp.tx_ipaddrs = ["127.0.0.1"]; temp.tx_parts = [1]; temp.port = 6203
 links = topo.get_links()
-topo.ADD_STREAM(links[0], temp.port, temp, temp.tos, target_rtt=18)
+
+topo.ADD_STREAM(links[0], temp, target_rtt=18)
+
 print(topo)
+ctl.write_remote_stream(topo)
+
+conn = ctl._start_replay(graph=topo, DURATION=1)
+
+print(conn.fetch().apply())
 
 print(ctl.rtt_read(topo))
-
-# # Write to remote sender
-# write_remote_stream(temp, LINK_NAME_TO_TX_NAME(links[0]), links[0])
-
-# # start remote receiver
-# conn = ctl._start_replay(graph=topo, DURATION=1)
-# print(conn.fetch().apply())
-
-# # Fetch results (whole data)
-# ctl.fileTransfer(topo, '127.0.0.1', './data'
-
 

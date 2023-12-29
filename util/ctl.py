@@ -4,6 +4,7 @@ import os
 from util.trans_graph import Graph
 from util.trans_graph import LINK_NAME_TO_TX_NAME, LINK_NAME_TO_RX_NAME, LINK_NAME_TO_PROT_NAME
 from util.solver import dataStruct
+from util.stream import stream, create_command
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
 sys.path.append(parent)
@@ -177,3 +178,21 @@ def rtt_read(graph):
                 )
                 idx += 1
     return graph
+
+def write_remote_stream(graph: Graph):
+    conn = Connector()
+    for device_name, links in graph.graph.items():
+        for link_name, streams in links.items():
+            if streams == {}:
+                continue
+            sender = LINK_NAME_TO_TX_NAME(link_name)
+            idx = 0
+            for stream_name, _stream in streams.items():
+                if idx == 0:
+                    _clear = True
+                else:
+                    _clear = False
+                cmd = create_command(_stream, f'../stream-replay/data/{link_name}.json', clear=_clear)
+                conn.batch(sender, 'abuse_manifest', {'cmd': cmd}).wait(0.1)
+                idx += 1
+    conn.executor.wait(0.1).apply()
