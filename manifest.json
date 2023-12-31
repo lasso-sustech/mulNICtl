@@ -4,6 +4,7 @@
         "manifest": "manifest.json",
         "data": "stream-replay/data/*",
         "src": "stream-replay/src/*",
+        "udp_rx" : "stream-replay/udp_rx.py",
         "tool":"tools/*",
         "util": "util/*"
     },

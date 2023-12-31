@@ -1,10 +1,14 @@
 def read_rtt(file_addr):
     rtt = [[], [], []]
+    num = 0
+    received = 0
     with open(file_addr, 'r') as f:
         lines = f.readlines()
+        received = len(lines)
         for line in lines:
             line = line.strip().split()
             if len(line) >= 4:
+                num = float(line[0])
                 rtt[0].append(float(line[1]))
                 rtt[1].append(float(line[2]))
                 rtt[2].append(float(line[3]))
@@ -21,6 +25,7 @@ def read_rtt(file_addr):
     probability[1] = len([i for i in rtt[2] if i != 0])/len(rtt[2])
 
     ## print
+    print(f'Received packets fraction: {received/num}')
     print(f'Average RTT: {average_rtt}')
     print(f'Probability of non-zero RTT: {probability}')
     pass

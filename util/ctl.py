@@ -151,7 +151,7 @@ def fileTransfer(graph, target_ip, output_folder):
 
     conn.executor.wait(0.5).apply()
 
-def rtt_read(graph):
+def rtt_read(graph, opStructs = None):
     conn = Connector()
     for device_name, links in graph.graph.items():
         for link_name, streams in links.items():
@@ -173,6 +173,8 @@ def rtt_read(graph):
             # split link name to protocol, sender, receiver
             for stream_name, stream_handle in streams.items():
                 data = dataStruct(results[idx])
+                if opStructs:
+                    opStructs[idx].update(data)
                 graph.info_graph[device_name][link_name][stream_name].update(
                     {"channel_val": data}
                 )
@@ -196,3 +198,20 @@ def write_remote_stream(graph: Graph):
                 conn.batch(sender, 'abuse_manifest', {'cmd': cmd}).wait(0.1)
                 idx += 1
     conn.executor.wait(0.1).apply()
+
+def _loop_apply(conn:Connector):
+    """
+    Continuing apply the connector, fetch the result from remote until receiving outputs
+    """
+    conn.fetch()
+    idx = 0
+    while True:
+        try:
+            print("try to apply", idx)
+            idx += 1
+            outputs = conn.apply()
+            return outputs
+            break
+        except Exception as e:
+            print(e)
+            break
