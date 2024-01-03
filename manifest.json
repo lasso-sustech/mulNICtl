@@ -281,6 +281,21 @@
             "commands":[
                 "$cmd"
             ]
+        },
+        "config_network":{
+            "description": "config network for transmission",
+            "parameters":{
+                "interface": ""
+            },
+            "commands":[
+                "cd tools; python3 set_route.py -i $interface"
+            ],
+            "outputs": {
+                "cmd_return": {
+                    "cmd": "echo $output_0",
+                    "format":"(.*)"
+                }
+            }
         }
     }
 }

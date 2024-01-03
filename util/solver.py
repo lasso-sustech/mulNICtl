@@ -22,7 +22,7 @@ class opStruct:
         self.inc_direction = [-1, 1]
         self.channel_rtts = [0, 0]
         self.channel_probabilities = [0 , 0]
-        self.epsilon_rtt = 0.001 # 1ms
+        self.epsilon_rtt = 0.2 # 10%
         self.epsilon_prob_upper = 0.3 # probability that packet send all the packet
         self.epsilon_prob_lower = 0.1  # probability that packet do not send all the packet
 
@@ -43,6 +43,8 @@ class opStruct:
             return self
         else:
             self.tx_parts[0] += self.min_step if self.channel_rtts[0] < self.channel_rtts[1] else -self.min_step
+
+            self.tx_parts[0] = max(0, min(1, self.tx_parts[0]))
             self.tx_parts[0] = round(self.tx_parts[0], 2)
             self.tx_parts[1] = self.tx_parts[0]
             return self

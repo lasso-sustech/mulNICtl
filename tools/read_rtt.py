@@ -16,8 +16,10 @@ def read_rtt(file_addr):
     ## average rtt
     average_rtt = [0,0,0]
     average_rtt[0] =  sum(rtt[0])/len(rtt[0])
-    average_rtt[1] = sum(rtt[1])/len(rtt[1])
-    average_rtt[2] = sum(rtt[2])/len(rtt[2])
+    # average_rtt[1] = sum(rtt[1])/len(rtt[1])
+    # average_rtt[2] = sum(rtt[2])/len(rtt[2])
+    average_rtt[1] = len([i for i in rtt[1] if i == 1])/len(rtt[1])
+    average_rtt[2] = len([i for i in rtt[2] if i == 1])/len(rtt[2])
 
     ## probability of non-zero rtt
     probability = [0,0]

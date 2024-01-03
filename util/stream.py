@@ -29,7 +29,7 @@ class stream:
     def __init__(self) -> None:
         self.type = "UDP"
         self.npy_file = "cast_3.125MB.npy"
-        self.tos = 96
+        self.tos = 96 # 128
         self.port = 6201
         self.throttle = 0
         self.start_offset = 0
@@ -65,7 +65,7 @@ class stream:
     def read_from_manifest(self, file_addr):
         with open(file_addr, 'r') as f:
             content = json.load(f)
-        stream_param = content['streams'][-1]
+        stream_param = content['streams']
         for i in stream_param:
             if i in self.__dict__:
                 self.__setattr__(i, stream_param[i])

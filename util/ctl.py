@@ -82,10 +82,11 @@ def _start_replay(graph:Graph, DURATION):
             # prot, sender, receiver = link_name.split("_")
             # receiver = receiver if receiver else ""
             receiver = LINK_NAME_TO_RX_NAME(link_name)
-            for stream_name, stream in streams.items():
+            for stream_name, stream_handle in streams.items():
                 # extract port number
                 port_num, tos = stream_name.split("@")
-                if "file" in stream.npy_file:
+                if stream_handle.calc_rtt == False:
+                    # continue
                     conn.batch(
                         receiver,
                         "outputs_throughput",
@@ -159,12 +160,14 @@ def rtt_read(graph, opStructs = None):
                 continue
             # split link name to protocol, sender, receiver
             sender = LINK_NAME_TO_TX_NAME(link_name)
-            for stream_name, stream in streams.items():
+            for stream_name, stream_handle in streams.items():
                 # extract port number
+                if stream_handle.calc_rtt == False:
+                    continue
+                print(stream_name)
                 port_num, tos = stream_name.split("@")
                 conn.batch(sender, "read_rtt", {"port": port_num, "tos": tos})
     results = conn.executor.wait(0.5).fetch().apply()
-
     idx = 0
     for device_name, links in graph.graph.items():
         for link_name, streams in links.items():
@@ -172,8 +175,10 @@ def rtt_read(graph, opStructs = None):
                 continue
             # split link name to protocol, sender, receiver
             for stream_name, stream_handle in streams.items():
+                if stream_handle.calc_rtt == False:
+                    continue
                 data = dataStruct(results[idx])
-                if opStructs:
+                if opStructs and len(opStructs) > idx:
                     opStructs[idx].update(data)
                 graph.info_graph[device_name][link_name][stream_name].update(
                     {"channel_val": data}
