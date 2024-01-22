@@ -164,10 +164,10 @@ def rtt_read(graph, opStructs = None):
                 # extract port number
                 if stream_handle.calc_rtt == False:
                     continue
-                print(stream_name)
                 port_num, tos = stream_name.split("@")
                 conn.batch(sender, "read_rtt", {"port": port_num, "tos": tos})
     results = conn.executor.wait(0.5).fetch().apply()
+    print('rtt results', results)
     idx = 0
     for device_name, links in graph.graph.items():
         for link_name, streams in links.items():
@@ -212,7 +212,7 @@ def _loop_apply(conn:Connector):
     idx = 0
     while True:
         try:
-            print("try to apply", idx)
+            # print("try to apply", idx)
             idx += 1
             outputs = conn.apply()
             return outputs

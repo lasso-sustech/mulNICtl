@@ -26,6 +26,23 @@ class opStruct:
         self.epsilon_prob_upper = 0.3 # probability that packet send all the packet
         self.epsilon_prob_lower = 0.1  # probability that packet do not send all the packet
 
+    def __add__(self, other):
+        if isinstance(other, opStruct):
+            assert(self.tx_parts[0] == other.tx_parts[0] and self.tx_parts[1] == other.tx_parts[1])
+            self.data_frac += other.data_frac
+            self.rtt += other.rtt
+            self.channel_rtts = [x + y for x, y in zip(self.channel_rtts, other.channel_rtts)]
+            self.channel_probabilities = [x + y for x, y in zip(self.channel_probabilities, other.channel_probabilities)]
+        return self
+    
+    def __truediv__(self, fraction):
+        assert(fraction > 0)
+        self.data_frac /= fraction
+        self.rtt /= fraction
+        self.channel_rtts = [x / fraction for x in self.channel_rtts]
+        self.channel_probabilities = [x / fraction for x in self.channel_probabilities]
+        return self
+
     def update(self, data:dataStruct):
         self.data_frac = data.data_frac
         self.rtt = data.rtt
