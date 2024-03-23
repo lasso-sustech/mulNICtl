@@ -13,6 +13,52 @@ def test_steam_gen():
     conn.batch('STA1', 'abuse_manifest', {'cmd': cmd})
     conn.executor.wait(0.1).apply()
 
+def test_channel_throughput():
+    from tap import Connector
+    from util.trans_graph import LINK_NAME_TO_TX_NAME
+    import util.ctl as ctl
+    from tools.read_graph import construct_graph
+    from util.solver import opStruct
+    from util import stream
+    from typing import List
+    import time, random
+    import os
+
+    print("Test Channel 0")
+    # Graph
+    # topo = construct_graph("./config/topo/graph.txt")
+    topo = construct_graph("./config/topo/graph_4.txt")
+    links = topo.get_links()
+
+    # IP extractor
+    ip_table = ctl._ip_extract_all(topo)
+    ctl._ip_associate(topo, ip_table)
+
+    temp = stream.stream().read_from_manifest('./config/stream/file.json')
+    temp.tx_ipaddrs = ['192.168.3.57', '192.168.3.59']; temp.tx_parts = [0, 0]; temp.port = 6230
+    topo.ADD_STREAM(links[0], temp, target_rtt=16)
+
+    conn = ctl._start_replay(graph=topo, DURATION = 30)
+    res = ctl._loop_apply(conn)
+    print(res)
+
+
+    print("Test Channel 1")
+    topo = construct_graph("./config/topo/graph_4.txt")
+    links = topo.get_links()
+
+    ip_table = ctl._ip_extract_all(topo)
+    ctl._ip_associate(topo, ip_table)
+
+    temp = stream.stream().read_from_manifest('./config/stream/file.json')
+
+    temp.tx_ipaddrs = ['192.168.3.57', '192.168.3.59']; temp.tx_parts = [1, 1]; temp.port = 6203
+    topo.ADD_STREAM(links[0], temp, target_rtt=16)
+
+    conn = ctl._start_replay(graph=topo, DURATION = 30)
+    res = ctl._loop_apply(conn)
+    print(res)
+
 
 def test_linear_approximation():
     from tap import Connector
@@ -57,7 +103,7 @@ def test_linear_approximation():
     # tx_parts_choice =  np.linspace(choiceRange[0], choiceRange[1], int(choiceRange[1] / 0.05) + 1)
     # tx_parts_redundancy_choice = np.linspace(choiceRange[0], choiceRange[1], int(choiceRange[1] / 0.05) + 1)
 
-    tx_parts_choice =  np.array([0, 0.1, 0.2, 0.3, 0.4, 0.5])
+    tx_parts_choice =  np.array([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
     tx_parts_redundancy_choice = np.array([0] * len(tx_parts_choice))
     for tx_parts_1, tx_parts_redundency in zip(tx_parts_choice, tx_parts_redundancy_choice):
         phase1 = opStruct()
@@ -101,5 +147,6 @@ def test_linear_approximation():
     f.close()
 
 if __name__ == '__main__':
-    test_linear_approximation()
+    # test_linear_approximation()
+    test_channel_throughput()
 
