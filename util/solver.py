@@ -23,8 +23,8 @@ class opStruct:
         self.channel_rtts = [0, 0]
         self.channel_probabilities = [0 , 0]
         self.epsilon_rtt = 0.2 # 10%
-        self.epsilon_prob_upper = 0.3 # probability that packet send all the packet
-        self.epsilon_prob_lower = 0.1  # probability that packet do not send all the packet
+        self.epsilon_prob_upper = 0.6 # probability that packet send all the packet
+        self.epsilon_prob_lower = 0.01  # probability that packet do not send all the packet
 
     def __add__(self, other):
         if isinstance(other, opStruct):
@@ -42,6 +42,15 @@ class opStruct:
         self.channel_rtts = [x / fraction for x in self.channel_rtts]
         self.channel_probabilities = [x / fraction for x in self.channel_probabilities]
         return self
+    
+    def correct_channel_rtt(self):
+        channel_rtts = []
+        rtt_diff = self.channel_rtts[0] - self.channel_rtts[1]
+        if rtt_diff >= 0:
+            channel_rtts = [self.rtt, self.rtt - rtt_diff]
+        elif rtt_diff < 0:
+            channel_rtts = [self.rtt + rtt_diff, self.rtt]
+        return channel_rtts
 
     def update(self, data:dataStruct):
         self.data_frac = data.data_frac
@@ -84,3 +93,8 @@ class opStruct:
     
     def __str__(self) -> str:
         return json.dumps(self.__dict__, indent=2)
+    
+    def load_from_dict(self, _dict):
+        for key, value in _dict.items():
+            setattr(self, key, value)
+        return self

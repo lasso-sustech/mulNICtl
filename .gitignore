@@ -4,3 +4,4 @@ __pycache__
 /config/stream/*
 /data
 /logs
+/scripts/*.png

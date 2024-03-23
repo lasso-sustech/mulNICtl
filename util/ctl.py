@@ -1,6 +1,7 @@
 import json
 import sys
 import os
+import time
 from util.trans_graph import Graph
 from util.trans_graph import LINK_NAME_TO_TX_NAME, LINK_NAME_TO_RX_NAME, LINK_NAME_TO_PROT_NAME
 from util.solver import dataStruct
@@ -203,6 +204,7 @@ def write_remote_stream(graph: Graph):
                 conn.batch(sender, 'abuse_manifest', {'cmd': cmd}).wait(0.1)
                 idx += 1
     conn.executor.wait(0.1).apply()
+    time.sleep(0.1)
 
 def _loop_apply(conn:Connector):
     """

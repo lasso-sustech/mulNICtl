@@ -1,13 +1,105 @@
 ## Test the stream class
-from util.stream import stream, create_command
-test = stream()
-test.port = 6202
-test.tx_parts = [0.9, 0.1]
-cmd = create_command(test, '../stream-replay/data/temp.json', clear=True)
-print(cmd)
+def test_steam_gen():
+    from util.stream import stream, create_command
+    test = stream()
+    test.port = 6202
+    test.tx_parts = [0.9, 0.1]
+    cmd = create_command(test, '../stream-replay/data/temp.json', clear=True)
+    print(cmd)
 
-from tap import Connector
+    from tap import Connector
 
-conn = Connector()
-conn.batch('STA1', 'abuse_manifest', {'cmd': cmd})
-conn.executor.wait(0.1).apply()
+    conn = Connector()
+    conn.batch('STA1', 'abuse_manifest', {'cmd': cmd})
+    conn.executor.wait(0.1).apply()
+
+
+def test_linear_approximation():
+    from tap import Connector
+    from util.trans_graph import LINK_NAME_TO_TX_NAME
+    import util.ctl as ctl
+    from tools.read_graph import construct_graph
+    from util.solver import opStruct
+    from util import stream
+    from typing import List
+    import time, random
+    import os
+
+    def create_logger_file(filename:str):
+        if not os.path.exists(os.path.dirname(filename)):
+            os.makedirs(os.path.dirname(filename))
+        f = open(filename, 'w')
+        f.write('[')
+        return f
+
+    # Graph
+    # topo = construct_graph("./config/topo/graph.txt")
+    topo = construct_graph("./config/topo/graph_4.txt")
+
+
+    # IP extractor
+    ip_table = ctl._ip_extract_all(topo)
+    ctl._ip_associate(topo, ip_table)
+
+    links = topo.get_links()
+
+    temp = stream.stream().read_from_manifest('./config/stream/proj.json')
+    # temp.npy_file = 'proj_12.5MB.npy'
+    temp.calc_rtt = True
+    temp.tx_ipaddrs = ['192.168.3.57', '192.168.3.59']; temp.tx_parts = [0.25, 0.25]; temp.port = 6203
+    topo.ADD_STREAM(links[0], temp, target_rtt=16)
+
+    f = create_logger_file('logs/2024-3-23/test5.json')
+
+    loopTime = 1
+    choiceRange = [0, 0.25]
+    import numpy as np
+    # tx_parts_choice =  np.linspace(choiceRange[0], choiceRange[1], int(choiceRange[1] / 0.05) + 1)
+    # tx_parts_redundancy_choice = np.linspace(choiceRange[0], choiceRange[1], int(choiceRange[1] / 0.05) + 1)
+
+    tx_parts_choice =  np.array([0, 0.1, 0.2, 0.3, 0.4, 0.5])
+    tx_parts_redundancy_choice = np.array([0] * len(tx_parts_choice))
+    for tx_parts_1, tx_parts_redundency in zip(tx_parts_choice, tx_parts_redundancy_choice):
+        phase1 = opStruct()
+        phase1.update_tx_parts([tx_parts_1, tx_parts_1 + tx_parts_redundency])
+        phase1.apply(temp)
+        # phase1.update_tx_parts(temp.tx_parts)
+        print(f'Test {phase1.tx_parts}')
+
+        ctl.write_remote_stream(topo)
+
+        for __ in range(loopTime):
+            phase_temp = opStruct()
+            phase_temp.update_tx_parts(phase1.tx_parts)
+
+            conn = ctl._start_replay(graph=topo, DURATION = 30)
+            res = ctl._loop_apply(conn)
+            print(res)
+
+            try:
+                ctl.rtt_read(topo, [phase_temp])
+            except Exception as e:
+                print(e)
+                continue
+            
+            print(phase_temp.correct_channel_rtt())
+            phase1 = phase1 + phase_temp
+
+        phase1 = phase1 / loopTime
+        print(phase1)
+
+        # phase1.tx_parts = [tx_parts_1, tx_parts_1 + tx_parts_redundency]
+
+
+        f.write(phase1.__str__())
+        if tx_parts_1 != tx_parts_choice[-1]:
+            f.write(',\n')
+
+        f.flush()
+
+    f.write(']')
+    f.close()
+
+if __name__ == '__main__':
+    test_linear_approximation()
+

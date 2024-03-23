@@ -120,7 +120,7 @@ class Graph:
             {str(port_number)+'@'+str(tos): {"target_rtt": target_rtt, 'name': _name, "active": True}})
         pass
 
-    def REMOVE_STREAM(self, link_name:str, port_number: int, tos=132) -> None:
+    def REMOVE_STREAM(self, link_name:str, stream) -> None:
         """
         Remove stream based on link name and port number
 
@@ -130,6 +130,7 @@ class Graph:
             tos (int, optional): tos value of this stream. Defaults to 132.
         """
         device_name = LINK_NAME_TO_TX_NAME(link_name)
+        port_number = stream.port; tos = stream.tos
         del self.graph[device_name][link_name][str(port_number)+'@'+str(tos)]
         del self.info_graph[device_name][link_name][str(
             port_number)+'@'+str(tos)]
