@@ -1,3 +1,7 @@
+import subprocess as sp
+
+SHELL_POPEN = lambda x: sp.Popen(x, stdout=sp.PIPE, stderr=sp.PIPE, shell=True)
+SHELL_RUN = lambda x: sp.run(x, stdout=sp.PIPE, stderr=sp.PIPE, check=True, shell=True)
 ## Test the stream class
 def test_steam_gen():
     from util.stream import stream, create_command
@@ -33,11 +37,16 @@ def test_channel_throughput():
     # IP extractor
     ip_table = ctl._ip_extract_all(topo)
     ctl._ip_associate(topo, ip_table)
+    ip_ch1 = "192.168.3.57"
+    ip_ch2 = "192.168.3.59"
+    assert ip_ch1 in ip_table and ip_ch2 in ip_table
 
     temp = stream.stream().read_from_manifest('./config/stream/file.json')
     temp.tx_ipaddrs = ['192.168.3.57', '192.168.3.59']; temp.tx_parts = [0, 0]; temp.port = 6230
+    temp.calc_rtt = False; temp.no_logging = True
     topo.ADD_STREAM(links[0], temp, target_rtt=16)
 
+    ctl.write_remote_stream(topo)
     conn = ctl._start_replay(graph=topo, DURATION = 30)
     res = ctl._loop_apply(conn)
     print(res)
@@ -54,13 +63,76 @@ def test_channel_throughput():
 
     temp.tx_ipaddrs = ['192.168.3.57', '192.168.3.59']; temp.tx_parts = [1, 1]; temp.port = 6203
     topo.ADD_STREAM(links[0], temp, target_rtt=16)
+    temp.calc_rtt = False; temp.no_logging = True
 
+    ctl.write_remote_stream(topo)
     conn = ctl._start_replay(graph=topo, DURATION = 30)
     res = ctl._loop_apply(conn)
     print(res)
 
+def test_local_throughput():
+    import time
+    process = []
+    process.append(SHELL_POPEN('python3 tap.py -s'))
+    time.sleep(1)
+    process.append(SHELL_POPEN('python3 tap.py -c 127.0.0.1 -n SoftAP'))
+    process.append(SHELL_POPEN('python3 tap.py -c 127.0.0.1 -n STA1'))
+    time.sleep(2)
+        
 
-def test_linear_approximation():
+    from tap import Connector
+    from util.trans_graph import LINK_NAME_TO_TX_NAME
+    import util.ctl as ctl
+    from tools.read_graph import construct_graph
+    from util.solver import opStruct
+    from util import stream
+    from typing import List
+    import time, random
+    import os
+
+    print("Test Channel 0")
+    # Graph
+    # topo = construct_graph("./config/topo/graph.txt")
+    topo = construct_graph("./config/topo/lo.txt")
+    links = topo.get_links()
+
+    # IP extractor
+    ip_table = ctl._ip_extract_all(topo)
+    ctl._ip_associate(topo, ip_table)
+
+    temp = stream.stream().read_from_manifest('./config/stream/file.json')
+    temp.tx_ipaddrs = ['127.0.0.1', '10.16.60.57']; temp.tx_parts = [0, 0]; temp.port = 6203
+    temp.calc_rtt = False; temp.no_logging = True
+    topo.ADD_STREAM(links[0], temp)
+
+    ctl.write_remote_stream(topo)
+    conn = ctl._start_replay(topo, 5)
+    res = ctl._loop_apply(conn)
+    print(res)
+
+
+    print("Test Channel 1")
+    topo = construct_graph("./config/topo/lo.txt")
+    links = topo.get_links()
+
+
+    ip_table = ctl._ip_extract_all(topo)
+    ctl._ip_associate(topo, ip_table)
+
+    temp = stream.stream().read_from_manifest('./config/stream/file.json')
+
+    temp.tx_ipaddrs = ['127.0.0.1', '10.16.60.57']; temp.tx_parts = [1, 1]; temp.port = 6203
+    temp.calc_rtt = False; temp.no_logging = True
+    topo.ADD_STREAM(links[0], temp, target_rtt=16)
+
+    ctl.write_remote_stream(topo)
+    conn = ctl._start_replay(graph=topo, DURATION = 5)
+    res = ctl._loop_apply(conn)
+    print(res)
+
+    process.append(SHELL_POPEN('killall python3'))
+   
+def test_proj_transmission():
     from tap import Connector
     from util.trans_graph import LINK_NAME_TO_TX_NAME
     import util.ctl as ctl
@@ -147,6 +219,7 @@ def test_linear_approximation():
     f.close()
 
 if __name__ == '__main__':
-    # test_linear_approximation()
-    test_channel_throughput()
+    # test_proj_transmission()
+    # test_channel_throughput()
+    test_local_throughput()
 
