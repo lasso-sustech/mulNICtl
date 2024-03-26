@@ -30,7 +30,7 @@ def line_infer(datas: List[opStruct], channel: int = 0):
     for data in datas:
         cha_rtts.append(read_chan_rtt(data))
     
-    assert(cha_rtts[0][channel] != 0)
+    # assert(cha_rtts[0][channel] != 0)
     # Calculate the slope
     slope = (cha_rtts[1][channel] - cha_rtts[0][channel]) / (datas[1].tx_parts[channel] - datas[0].tx_parts[channel])
 
@@ -68,24 +68,29 @@ def load_data(file_path: str) -> List[opStruct]:
 def line_plot( data_x , data_list, label = ''):
     plt.plot(data_x, data_list, label=label, marker='o')
 
-channel = 0
-datas = load_data('../logs/2024-3-23/test4.json')
+channel = 1
+datas = load_data('../logs/2024-3-26/OneTask2.json')
 
 if channel == 1:
+    datas = datas[1:]
+else:
     datas = datas[:-1]
-datas = datas[::-1]
+# datas = datas[::-1]
 
-print(rtt_distance_cal(datas, channel))
+# print(read_chan_rtt(datas))
 
 data_x = [ data.tx_parts[0] for data in datas]
 channel_rtt = [read_chan_rtt(data)[channel] for data in datas]
 infered_rtt = line_infer(datas, channel)
+print(channel_rtt)
 
 line_plot(data_x, np.abs(np.array(rtt_distance_cal(datas, channel))) * 1000, 'Error')
-line_plot(data_x, np.abs(np.array(channel_rtt)) * 1000, 'Real')
-line_plot(data_x, np.abs(np.array(infered_rtt)) * 1000, 'Infered')
+line_plot(data_x, np.array(channel_rtt) * 1000, 'Real')
+line_plot(data_x, np.array(infered_rtt) * 1000, 'Infered')
 
 plt.xlabel('2.4G Transmission Part')
 plt.ylabel('Error (ms)')
+channel_str = '2.4G' if channel == 1 else '5G'
+plt.title(f'Channel {channel_str} RTT Error')
 plt.legend()
-plt.savefig('line_plot1.png')
+plt.savefig('test2.png')
