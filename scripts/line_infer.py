@@ -44,6 +44,35 @@ def line_infer(datas: List[opStruct], channel: int = 0):
     
     return predicted
 
+def line_infer_func(datas: List[opStruct], channel: int = 0) -> callable:
+    cha_rtts = []
+    for data in datas:
+        cha_rtts.append(read_chan_rtt(data))
+    
+    # assert(cha_rtts[0][channel] != 0)
+    # Calculate the slope
+    slope = (cha_rtts[1][channel] - cha_rtts[0][channel]) / (datas[1].tx_parts[channel] - datas[0].tx_parts[channel])
+
+    # Calculate the intercept
+    intercept = cha_rtts[0][channel] - slope * datas[0].tx_parts[channel]
+
+    # Predict DATA for the rest data
+    def infer_func(tx_part):
+        return slope * tx_part + intercept
+    
+    return infer_func
+
+def find_minimum_part(func1, func2):
+    minimum_part = 0
+    minimum_diff = 1000000
+    maximum_part_num = 100
+    for part in range(0, maximum_part_num):
+        _part = part / maximum_part_num
+        if abs(func1(_part) - func2(_part)) < minimum_diff:
+            minimum_diff = abs(func1(_part) - func2(_part))
+            minimum_part = _part
+    return minimum_part
+
 def rtt_distance_cal(datas: List[opStruct], channel: int = 0):
     cha_rtts = []
     for data in datas:
@@ -68,29 +97,55 @@ def load_data(file_path: str) -> List[opStruct]:
 def line_plot( data_x , data_list, label = ''):
     plt.plot(data_x, data_list, label=label, marker='o')
 
-channel = 1
-datas = load_data('../logs/2024-3-26/OneTask2.json')
+if __name__ == '__main__':
+    ## Plot Script 1
+    # channel = 0
+    # datas = load_data('../logs/2024-3-26/test1.json')
 
-if channel == 1:
-    datas = datas[1:]
-else:
-    datas = datas[:-1]
-# datas = datas[::-1]
+    # if channel == 1:
+    #     datas = datas[1:]
+    # else:
+    #     datas = datas[:-1]
+    # # datas = datas[::-1]
 
-# print(read_chan_rtt(datas))
+    # # print(read_chan_rtt(datas))
 
-data_x = [ data.tx_parts[0] for data in datas]
-channel_rtt = [read_chan_rtt(data)[channel] for data in datas]
-infered_rtt = line_infer(datas, channel)
-print(channel_rtt)
+    # data_x = [ data.tx_parts[0] for data in datas]
+    # channel_rtt = [read_chan_rtt(data)[channel] for data in datas]
+    # infered_rtt = line_infer(datas, channel)
+    # print(channel_rtt)
 
-line_plot(data_x, np.abs(np.array(rtt_distance_cal(datas, channel))) * 1000, 'Error')
-line_plot(data_x, np.array(channel_rtt) * 1000, 'Real')
-line_plot(data_x, np.array(infered_rtt) * 1000, 'Infered')
+    # line_plot(data_x, np.abs(np.array(rtt_distance_cal(datas, channel))) * 1000, 'Error')
+    # line_plot(data_x, np.array(channel_rtt) * 1000, 'Real')
+    # line_plot(data_x, np.array(infered_rtt) * 1000, 'Infered')
 
-plt.xlabel('2.4G Transmission Part')
-plt.ylabel('Error (ms)')
-channel_str = '2.4G' if channel == 1 else '5G'
-plt.title(f'Channel {channel_str} RTT Error')
-plt.legend()
-plt.savefig('test2.png')
+    # plt.xlabel('2.4G Transmission Part')
+    # plt.ylabel('Error (ms)')
+    # channel_str = '2.4G' if channel == 1 else '5G'
+    # plt.title(f'Channel {channel_str} RTT Error')
+    # plt.legend()
+    # plt.savefig('test5.png')
+
+    ## Result Display 1
+    import csv
+    datas = load_data('../logs/2024-3-26/Predict Res.json')
+    csv_file = open('test1.csv', 'w')
+    device_num = 2
+    for i in range(len(datas) // device_num):
+        for j in range(device_num):
+            channel_rtt = read_chan_rtt(datas[i * device_num + j]) * 1000
+
+            print(f'device {j}, 2.4 Part {datas[i * device_num + j].tx_parts[0]}: 5G {channel_rtt[0]:.3f} ms, 2.4G {channel_rtt[1]:.3f} ms')
+            csv_file.writelines(f'{read_chan_rtt(datas[i * device_num + j])[0]},{read_chan_rtt(datas[i * device_num + j])[1]}\n')
+        print('')
+    
+    datas = np.array(datas).reshape(-1, device_num).T
+    channel = 2
+    for i in range(device_num):
+        inter_funcs = [ line_infer_func(datas[i], _channel) for _channel in range(channel) ]
+
+        part = datas[i][-1].tx_parts[0]
+
+        rtt = max([inter_funcs[_channel](part) for _channel in range(channel)])
+        print(f'Predict device {i}, 2.4 Part {part}: {[inter_funcs[_channel](part) for _channel in range(channel)]}')
+        csv_file.write(f'{rtt},')

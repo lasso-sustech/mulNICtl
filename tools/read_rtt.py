@@ -28,7 +28,7 @@ def read_rtt(file_addr):
 
     ## print
     print(f'Received packets fraction: {received/num}')
-    print(f'Average RTT: {average_rtt}')
+    print('Average RTT: %.9f %.9f %.9f' % (average_rtt[0], average_rtt[1], average_rtt[2]))
     print(f'Probability of non-zero RTT: {probability}')
     pass
 
