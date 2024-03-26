@@ -5,6 +5,7 @@
         "data": "stream-replay/data/*",
         "src": "stream-replay/src/*",
         "udp_rx" : "stream-replay/udp_rx.py",
+        "replay_rx": "stream-replay-rx/src/*",
         "tool":"tools/*",
         "util": "util/*"
     },
@@ -16,7 +17,7 @@
                 "port": 0
             },
             "commands": [
-                "(cd stream-replay; python3 udp_rx.py -t $duration -p $port )"
+                "(cd stream-replay-rx; ./target/release/stream-replay-rx $port $duration)"
             ],
             "outputs": {
                 "file_thru": {
@@ -34,12 +35,12 @@
                 "tos": 100
             },
             "commands": [
-                "(cd stream-replay; python3 udp_rx.py -t $duration -p $port --calc-jitter $calc_rtt --tos $tos)"
+                "(cd stream-replay-rx; ./target/release/stream-replay-rx $port $duration calc-rtt)"
             ],
             "outputs": {
                 "file_thru": {
                     "cmd": "echo $output_0",
-                    "format": "Average Throughput: (\\d+\\.\\d+) Mbps\nAverage Jitter: (-?\\d+\\.\\d+) ms"
+                    "format": "Average Throughput: (\\d+\\.\\d+) Mbps"
                 } 
             }
         },
@@ -120,22 +121,6 @@
             "commands": [
                 "cd tools; python3 tool.py $manifest_name throttle $file_throttle"
             ]
-        },
-        "receiver_outputs": {
-            "description": "Run stream-replay with default manifest file.",
-            "parameters": {
-                "duration": 10,
-                "file_port": 0
-            },
-            "commands": [
-                "(cd stream-replay; python3 udp_rx.py -t $duration -p $file_port)"
-            ],
-            "outputs": {
-                "file_thru": {
-                    "cmd": "echo $output_0",
-                    "format": "Average Throughput: (\\d+\\.\\d+) Mbps"
-                }
-            }
         },
         "run-replay-client": {
             "description": "Run stream-replay with default manifest file.",

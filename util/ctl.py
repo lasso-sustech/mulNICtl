@@ -56,6 +56,20 @@ def _ip_associate(graph:Graph, ip_table:dict):
                 graph.associate_ip(device_name, protocol, ip)
     return _add_ipc_port(graph)
 
+def validate_ip_addr(graph:Graph):
+    for device_name, links in graph.graph.items():
+        for link_name, streams in links.items():
+            if streams == {}:
+                continue
+            sender = LINK_NAME_TO_TX_NAME(link_name)
+            idx = 0
+            for stream_name, _stream in streams.items():
+                for ip_addr in _stream.tx_ipaddrs:
+                    if not graph.info_graph[sender][link_name].get(ip_addr):
+                        print(f"Error: {sender} do not have {ip_addr} ip address")
+                        return False
+                    
+
 def _add_ipc_port(graph):
     """
     Add ipc port (remote and local) to graph

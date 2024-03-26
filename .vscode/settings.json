@@ -1,0 +1,5 @@
+{
+    "rust-analyzer.linkedProjects": [
+        "./stream-replay-rx/Cargo.toml"
+    ]
+}

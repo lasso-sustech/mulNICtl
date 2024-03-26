@@ -45,6 +45,10 @@ class opStruct:
     
     def correct_channel_rtt(self):
         channel_rtts = []
+        if self.channel_rtts[0] == 0:
+            return [0, self.rtt]
+        if self.channel_rtts[1] == 0:
+            return [self.rtt, 0]
         rtt_diff = self.channel_rtts[0] - self.channel_rtts[1]
         if rtt_diff >= 0:
             channel_rtts = [self.rtt, self.rtt - rtt_diff]

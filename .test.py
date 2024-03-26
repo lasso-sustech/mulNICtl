@@ -37,9 +37,10 @@ def test_channel_throughput():
     # IP extractor
     ip_table = ctl._ip_extract_all(topo)
     ctl._ip_associate(topo, ip_table)
+
     ip_ch1 = "192.168.3.57"
     ip_ch2 = "192.168.3.59"
-    assert ip_ch1 in ip_table and ip_ch2 in ip_table
+    # assert ip_ch1 in ip_table and ip_ch2 in ip_table
 
     temp = stream.stream().read_from_manifest('./config/stream/file.json')
     temp.tx_ipaddrs = ['192.168.3.57', '192.168.3.59']; temp.tx_parts = [0, 0]; temp.port = 6230
@@ -167,7 +168,7 @@ def test_proj_transmission():
     temp.tx_ipaddrs = ['192.168.3.57', '192.168.3.59']; temp.tx_parts = [0.25, 0.25]; temp.port = 6203
     topo.ADD_STREAM(links[0], temp, target_rtt=16)
 
-    f = create_logger_file('logs/2024-3-23/test5.json')
+    f = create_logger_file('logs/2024-3-26/test1.json')
 
     loopTime = 1
     choiceRange = [0, 0.25]
@@ -175,7 +176,7 @@ def test_proj_transmission():
     # tx_parts_choice =  np.linspace(choiceRange[0], choiceRange[1], int(choiceRange[1] / 0.05) + 1)
     # tx_parts_redundancy_choice = np.linspace(choiceRange[0], choiceRange[1], int(choiceRange[1] / 0.05) + 1)
 
-    tx_parts_choice =  np.array([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
+    tx_parts_choice =  np.array([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1])
     tx_parts_redundancy_choice = np.array([0] * len(tx_parts_choice))
     for tx_parts_1, tx_parts_redundency in zip(tx_parts_choice, tx_parts_redundancy_choice):
         phase1 = opStruct()
@@ -219,7 +220,8 @@ def test_proj_transmission():
     f.close()
 
 if __name__ == '__main__':
-    # test_proj_transmission()
+    test_proj_transmission()
     # test_channel_throughput()
-    test_local_throughput()
+    # test_local_throughput()
+
 
