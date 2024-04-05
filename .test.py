@@ -201,11 +201,11 @@ def test_proj_transmission():
             print(res)
 
             try:
-                ctl.rtt_read(topo, [phase_temp])
+                rtt = ctl.rtt_read(topo)
             except Exception as e:
                 print(e)
                 continue
-            
+            phase_temp.update(rtt[0])
             print(phase_temp.correct_channel_rtt())
             phase1 = phase1 + phase_temp
 
@@ -264,6 +264,12 @@ def test_line_predict():
     temp_stream2.tx_ipaddrs = ['192.168.3.57', '192.168.3.59']; temp_stream2.tx_parts = [0.25, 0.25]; temp_stream2.port = 6320
     topo.ADD_STREAM(links[0], temp_stream2, target_rtt=16)
 
+    file_stream = stream.stream().read_from_manifest('./config/stream/file.json')
+    file_stream.no_logging = True
+    file_stream.throttle  = 400
+    file_stream.tx_ipaddrs = ['192.168.3.57']; file_stream.tx_parts = [0]; file_stream.port = 6210
+    topo.ADD_STREAM(links[0], file_stream)
+
     f = create_logger_file('logs/2024-3-26/test1.json')
 
     loopTime = 1
@@ -296,11 +302,11 @@ def test_line_predict():
             print(res)
 
             try:
-                ctl.rtt_read(topo, [phase_temp, phase2])
+                res2 = ctl.rtt_read(topo)
             except Exception as e:
                 print(e)
                 continue
-            
+            phase_temp.update(res2[1]) 
             print(phase_temp.correct_channel_rtt())
             phase1 = phase1 + phase_temp
 
@@ -376,10 +382,65 @@ def test_line_predict():
     f.write(']')
     f.close()
 
+def test_create_file():
+    from tap import Connector
+    from util.trans_graph import LINK_NAME_TO_TX_NAME
+    import util.ctl as ctl
+    from tools.read_graph import construct_graph
+    from util.solver import opStruct
+    from util import stream
+    from typing import List
+    import time, random
+    import os
+    def create_logger_file(filename:str):
+        if not os.path.exists(os.path.dirname(filename)):
+            os.makedirs(os.path.dirname(filename))
+        f = open(filename, 'w')
+        f.write('[')
+        return f
+
+    f = create_logger_file('logs/2024-4-5/exp:compare-average-rtt.json')
+    
+    for thru in range(1, 20, 3):
+        arrivalGap = 16 #ms
+        # thru = 5 # Mbps
+        inter_name = f"dtMbps_{thru}.npy"
+        task_num = 5
+        
+        topo = construct_graph("./config/topo/graph_4.txt") # Graph
+        links = topo.get_links()
+        ip_table = ctl._ip_extract_all(topo)
+        ctl._ip_associate(topo, ip_table)
+        
+        conn = Connector()
+        sender = LINK_NAME_TO_TX_NAME(links[0])
+        conn.batch(sender, "create_file", {"thru": thru, "arrivalGap": arrivalGap, "name": inter_name, "num": 20000}).wait(0.5).apply()
+        
+        for _ in range(task_num):
+            temp = stream.stream().read_from_manifest('./config/stream/proj.json')
+            temp.npy_file = inter_name
+            temp.calc_rtt = True
+            temp.tx_ipaddrs = ['192.168.3.57', '192.168.3.59']; temp.tx_parts = [1, 1]; temp.port = 6203 + _
+            topo.ADD_STREAM(links[0], temp, target_rtt=16)
+        
+        ctl.write_remote_stream(topo)
+        conn = ctl._start_replay(graph=topo, DURATION = 30)
+        res = ctl._loop_apply(conn)
+        rtts = ctl.rtt_read(topo)
+        print(res)
+        for rtt in rtts:
+            print(rtt)
+            f.write(rtt.__str__())
+            f.write(',\n')
+        f.flush()
+        
+    f.write(']')
+    
+    
 if __name__ == '__main__':
     # test_proj_transmission()
-    test_line_predict()
+    # test_line_predict()
     # test_channel_throughput()
     # test_local_throughput()
-
+    test_create_file()
 

@@ -10,6 +10,7 @@ current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
 sys.path.append(parent)
 from tap import Connector
+from typing import List
 
 ## ip setup component
 def _ip_extract_all(graph: Graph):
@@ -167,8 +168,9 @@ def fileTransfer(graph, target_ip, output_folder):
 
     conn.executor.wait(0.5).apply()
 
-def rtt_read(graph, opStructs = None):
+def rtt_read(graph) -> List[dataStruct]:
     conn = Connector()
+    opStructs = []
     for device_name, links in graph.graph.items():
         for link_name, streams in links.items():
             if streams == {}:
@@ -193,13 +195,12 @@ def rtt_read(graph, opStructs = None):
                 if stream_handle.calc_rtt == False:
                     continue
                 data = dataStruct(results[idx])
-                if opStructs and len(opStructs) > idx:
-                    opStructs[idx].update(data)
+                opStructs.append(data)
                 graph.info_graph[device_name][link_name][stream_name].update(
                     {"channel_val": data}
                 )
                 idx += 1
-    return graph
+    return opStructs
 
 def write_remote_stream(graph: Graph):
     conn = Connector()

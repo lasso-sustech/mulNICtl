@@ -244,20 +244,6 @@
                 "cd tools; python3 file_tx.py -i $target_ip -f $file_name"
             ]
         },
-        "create_file":{
-            "description": "create new data file",
-            "parameters":{
-                "thru": 10,
-                "arrivalGap": 1,
-                "variance": 0.1,
-                "num": 1000,
-                "arrivalVar": 0.5,
-                "name": "test.npy"
-            },
-            "commands":[
-                "cd tools; python3 createData.py --thru $thru --arrivalGap $arrivalGap --name $name --variance $variance --arrivalVar $arrivalVar --num $num; mv $name ../stream-replay/data/"
-            ]
-        },
         "abuse_manifest":{
             "description": "abuse manifest",
             "parameters":{
@@ -281,6 +267,20 @@
                     "format":"(.*)"
                 }
             }
+        },
+        "create_file":{
+            "description": "create new data file",
+            "parameters":{
+                "thru": 10,
+                "arrivalGap": 1,
+                "variance": 0.1,
+                "num": 1000,
+                "arrivalVar": 0.5,
+                "name": "test.npy"
+            },
+            "commands":[
+                "cd tools; python3 create_data.py --thru $thru --arrivalGap $arrivalGap --name $name --variance $variance --arrivalVar $arrivalVar --num $num; mv $name ../stream-replay/data/"
+            ]
         }
     }
 }

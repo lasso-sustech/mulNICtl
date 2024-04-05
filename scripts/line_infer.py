@@ -60,6 +60,7 @@ def line_infer_func(datas: List[opStruct], channel: int = 0) -> callable:
     def infer_func(tx_part):
         return slope * tx_part + intercept
     
+    print(f'Channel {channel} Infer Func: {slope * 1000} * x + {intercept * 1000}')
     return infer_func
 
 def find_minimum_part(func1, func2):
@@ -128,24 +129,33 @@ if __name__ == '__main__':
 
     ## Result Display 1
     import csv
-    datas = load_data('../logs/2024-3-26/Predict Res.json')
+    # datas = load_data('../logs/2024-3-26/test1.json')
+    # datas = load_data('../logs/2024-3-26/Predict Res 7 - throughput 400.json')
+    # datas = load_data('../logs/2024-3-26/Predict Res 6 - throughput 100.json')
+    datas = load_data('../logs/2024-3-26/Predict Res 5 - throughput 200.json')
+    # datas = load_data('../logs/2024-3-26/Predict Res 4 - throughput 300.json')
     csv_file = open('test1.csv', 'w')
     device_num = 2
+    csv_file.write(f'2.4G Part, Taks1 - 5G, Taks1 - channel 2.4G, Taks2 - channel 5G, Taks2 - channel 2.4G \n')
     for i in range(len(datas) // device_num):
+        csv_file.write(f'{datas[i * device_num].tx_parts[0] * 100:.0f},')
         for j in range(device_num):
             channel_rtt = read_chan_rtt(datas[i * device_num + j]) * 1000
 
             print(f'device {j}, 2.4 Part {datas[i * device_num + j].tx_parts[0]}: 5G {channel_rtt[0]:.3f} ms, 2.4G {channel_rtt[1]:.3f} ms')
-            csv_file.writelines(f'{read_chan_rtt(datas[i * device_num + j])[0]},{read_chan_rtt(datas[i * device_num + j])[1]}\n')
+            csv_file.writelines(f'{read_chan_rtt(datas[i * device_num + j])[0] * 1000},{read_chan_rtt(datas[i * device_num + j])[1] * 1000},')
+        csv_file.write('\n')
         print('')
     
     datas = np.array(datas).reshape(-1, device_num).T
     channel = 2
+    csv_file.write(f'{datas[0][-1].tx_parts[0] * 100:.0f},')
     for i in range(device_num):
         inter_funcs = [ line_infer_func(datas[i], _channel) for _channel in range(channel) ]
+
 
         part = datas[i][-1].tx_parts[0]
 
         rtt = max([inter_funcs[_channel](part) for _channel in range(channel)])
         print(f'Predict device {i}, 2.4 Part {part}: {[inter_funcs[_channel](part) for _channel in range(channel)]}')
-        csv_file.write(f'{rtt},')
+        [csv_file.write(f'{inter_funcs[_channel](part) * 1000},') for _channel in range(channel)]
