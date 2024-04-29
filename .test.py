@@ -437,10 +437,11 @@ def test_create_file():
     f.write(']')
     
     
+    
 if __name__ == '__main__':
     # test_proj_transmission()
     # test_line_predict()
-    # test_channel_throughput()
+    test_channel_throughput()
     # test_local_throughput()
-    test_create_file()
+    # test_create_file()
 

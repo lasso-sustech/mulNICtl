@@ -63,12 +63,12 @@ def validate_ip_addr(graph:Graph):
             if streams == {}:
                 continue
             sender = LINK_NAME_TO_TX_NAME(link_name)
+            sender_ips = [ v for k, v in graph.info_graph[sender].items() if k.endswith('_ip_addr')]
             idx = 0
             for stream_name, _stream in streams.items():
                 for ip_addr in _stream.tx_ipaddrs:
-                    if not graph.info_graph[sender][link_name].get(ip_addr):
-                        print(f"Error: {sender} do not have {ip_addr} ip address")
-                        return False
+                    if ip_addr not in sender_ips:
+                        print(f"Error: {sender} do not have ip address {ip_addr}")
                     
 
 def _add_ipc_port(graph):

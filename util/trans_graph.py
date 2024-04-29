@@ -163,9 +163,12 @@ class Graph:
         """
         Display the graph and info graph
         """
-        print(json.dumps(self.info_graph, indent=2))
+        def encode(obj):
+            if obj.__class__.__name__ == 'stream' or 'dataStruct':
+                return obj.to_dict()
+        print(json.dumps(self.info_graph, indent=2, default=encode))
         print("="*50)
-        print(json.dumps(self.graph, indent=2))
+        print(json.dumps(self.graph, indent=2, default=encode))
         pass
 
     def __str__(self) -> str:
