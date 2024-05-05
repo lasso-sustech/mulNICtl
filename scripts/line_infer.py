@@ -7,12 +7,12 @@ import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from util.solver import opStruct
+from util.solver import channelBalanceSolver
 import json
 
 import matplotlib.pyplot as plt
 
-def read_chan_rtt(data: opStruct):
+def read_chan_rtt(data: channelBalanceSolver):
     '''
     Read channel rtt from data
     '''
@@ -25,7 +25,7 @@ def read_chan_rtt(data: opStruct):
     else:
         return np.array([ data.rtt + diff, data.rtt ])
 
-def line_infer(datas: List[opStruct], channel: int = 0):
+def line_infer(datas: List[channelBalanceSolver], channel: int = 0):
     cha_rtts = []
     for data in datas:
         cha_rtts.append(read_chan_rtt(data))
@@ -44,7 +44,7 @@ def line_infer(datas: List[opStruct], channel: int = 0):
     
     return predicted
 
-def line_infer_func(datas: List[opStruct], channel: int = 0) -> callable:
+def line_infer_func(datas: List[channelBalanceSolver], channel: int = 0) -> callable:
     cha_rtts = []
     for data in datas:
         cha_rtts.append(read_chan_rtt(data))
@@ -74,7 +74,7 @@ def find_minimum_part(func1, func2):
             minimum_part = _part
     return minimum_part
 
-def rtt_distance_cal(datas: List[opStruct], channel: int = 0):
+def rtt_distance_cal(datas: List[channelBalanceSolver], channel: int = 0):
     cha_rtts = []
     for data in datas:
         cha_rtts.append(read_chan_rtt(data))
@@ -85,14 +85,14 @@ def rtt_distance_cal(datas: List[opStruct], channel: int = 0):
         distances.append(cha_rtts[i][channel] - predicted[i])
     return distances
 
-def load_data(file_path: str) -> List[opStruct]:
+def load_data(file_path: str) -> List[channelBalanceSolver]:
     '''
     Load data from file
     '''
     with open(file_path, 'r') as f:
         datas = json.load(f)
         for i in range(len(datas)):
-            datas[i] = opStruct().load_from_dict(datas[i])
+            datas[i] = channelBalanceSolver().load_from_dict(datas[i])
     return datas
 
 def line_plot( data_x , data_list, label = ''):

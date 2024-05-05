@@ -1,4 +1,8 @@
 import json
+
+from util.predictor import rttPredictor
+import util.header as header
+
 class dataStruct:
     def __init__(self, rttDict):
         self.data_frac = float(rttDict['rtt'][0])
@@ -13,7 +17,7 @@ class dataStruct:
         return self.__dict__
 
     
-class opStruct:
+class channelBalanceSolver:
     def __init__(self):
         self.min_step = 0.05
         self.data_frac = 0
@@ -27,7 +31,7 @@ class opStruct:
         self.epsilon_prob_lower = 0.01  # probability that packet do not send all the packet
 
     def __add__(self, other):
-        if isinstance(other, opStruct):
+        if isinstance(other, channelBalanceSolver):
             assert(self.tx_parts[0] == other.tx_parts[0] and self.tx_parts[1] == other.tx_parts[1])
             self.data_frac += other.data_frac
             self.rtt += other.rtt
@@ -70,13 +74,14 @@ class opStruct:
     def load_balance(self):
         assert(self.tx_parts[0] == self.tx_parts[1])
         if abs(self.channel_rtts[0] - self.channel_rtts[1]) < self.epsilon_rtt:
+            header.TX_PARTS_SCHEMA.validate(self.channel_rtts)
             return self
         else:
             self.tx_parts[0] += self.min_step if self.channel_rtts[0] < self.channel_rtts[1] else -self.min_step
-
             self.tx_parts[0] = max(0, min(1, self.tx_parts[0]))
             self.tx_parts[0] = round(self.tx_parts[0], 2)
             self.tx_parts[1] = self.tx_parts[0]
+            header.TX_PARTS_SCHEMA.validate(self.channel_rtts)
             return self
     
     def check_load_balance(self):
@@ -90,7 +95,9 @@ class opStruct:
             elif pro < self.epsilon_prob_lower:
                 self.tx_parts[idx] -= self.min_step * self.inc_direction[idx]
             self.tx_parts[idx] = round(max(0, min(1, self.tx_parts[idx])),2)
-
+        header.TX_PARTS_SCHEMA.validate(self.channel_rtts)
+        return self
+        
     def apply(self, _stream):
         _stream.tx_parts = self.tx_parts
         return _stream
@@ -101,4 +108,51 @@ class opStruct:
     def load_from_dict(self, _dict):
         for key, value in _dict.items():
             setattr(self, key, value)
+        header.TX_PARTS_SCHEMA.validate(self.channel_rtts)
+        return self
+
+class channelSwitchSolver:
+    def __init__(self, target_rtt = 16, channel_idx = 0) -> None:
+        self.rtt_predict = rttPredictor()
+        self.target_rtt = target_rtt # ms
+        self.switch_state = header.CHANNEL1
+        self.islog = False
+    
+    def print_log(self, log):
+        if self.islog:
+            print(log)
+            
+    def is_backward_switch_able(self):
+        tx_parts = [0, 0]
+        predicted_val = self.rtt_predict.predict(tx_parts)
+        self.print_log(f"Predicted CH1 RTT: {predicted_val[0]}, Target RTT: {self.target_rtt}")
+        if predicted_val[0] < self.target_rtt:
+            self.switch_state = header.CHANNEL1
+            return self
+        
+        tx_parts = [1, 1]
+        predicted_val = self.rtt_predict.predict(tx_parts)
+        self.print_log(f"Predicted CH2 RTT: {predicted_val[1]}, Target RTT: {self.target_rtt}")
+        if predicted_val[1] < self.target_rtt:
+            self.switch_state = header.CHANNEL2
+            return self
+        
+        self.print_log(f"Predicted RTT: {predicted_val[0]}, {predicted_val[1]}, Target RTT: {self.target_rtt}")      
+        return self
+    
+    def switch(self, tx_parts, channel_rtt):
+        def is_rtt_satisfy(rtt):
+            return rtt < self.target_rtt
+        
+        self.rtt_predict.update(tx_parts, channel_rtt)
+                
+        if (not is_rtt_satisfy(channel_rtt[0]) and channel_rtt[1] == 0) or (not is_rtt_satisfy(channel_rtt[1]) and channel_rtt[0] == 0):
+            self.switch_state = header.MUL_CHAN
+        
+        if all(is_rtt_satisfy(rtt) for rtt in channel_rtt) and self.switch_state == header.MUL_CHAN:
+            try:
+                return self.is_backward_switch_able()
+            except Exception as e:
+                print(e)
+        
         return self

@@ -29,8 +29,17 @@ def exp_2024_4_29_4():
     sys.path.append('./expSrc/2024-4-29/experiment4')
     import exp
     
-# exp_2024_4_6()
-exp_2024_4_29_1()
-# exp_2024_4_29_2()
-# exp_2024_4_29_3()
-# exp_2024_4_29_4()
+def exp_2024_5_5():
+    ## Import python3 from ./expSrc/2024-5-5/channelRTTsamSumThru/exp.py
+    import sys
+    sys.path.append('./expSrc/2024-5-5/experiment1')
+    ## run exp
+    import exp
+    
+def switch_test():
+
+    import sys
+    sys.path.append('./expSrc/test/switch_test')
+    import exp
+    
+exp_2024_5_5()

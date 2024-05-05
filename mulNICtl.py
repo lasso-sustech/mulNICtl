@@ -2,7 +2,7 @@ from tap import Connector
 from util.trans_graph import LINK_NAME_TO_TX_NAME
 import util.ctl as ctl
 from tools.read_graph import construct_graph
-from util.solver import opStruct
+from util.solver import channelBalanceSolver
 from util import stream
 from typing import List
 import time, random
@@ -32,15 +32,11 @@ def throttle_control(fileStreams: List[stream.stream], throttle: int):
 # topo = construct_graph("./config/topo/graph.txt")
 topo = construct_graph("./config/topo/graph_4.txt")
 
-
 # IP extractor
 ip_table = ctl._ip_extract_all(topo)
 print(ip_table)
 ctl._ip_associate(topo, ip_table)
-# exit()
 
-
-# print(topo)
 # Create Stream
 links = topo.get_links()
 
@@ -75,20 +71,20 @@ loopTime = 1
 
 choiceRange = [0, 0.25]
 import numpy as np
-tx_parts_choice =  np.linspace(choiceRange[0], choiceRange[1], int(choiceRange[1] / 0.05) + 1)
-tx_parts_redundancy_choice = np.linspace(choiceRange[0], choiceRange[1], int(choiceRange[1] / 0.05) + 1)
+tx_parts_choice             =   np.linspace(choiceRange[0], choiceRange[1], int(choiceRange[1] / 0.05) + 1)
+tx_parts_redundancy_choice  =   np.linspace(choiceRange[0], choiceRange[1], int(choiceRange[1] / 0.05) + 1)
 
 _ = 0
 for tx_parts_1 in tx_parts_choice:
     for tx_parts_redundence in tx_parts_redundancy_choice:
-        phase1 = opStruct()
+        phase1 = channelBalanceSolver()
         phase1.update_tx_parts(temp.tx_parts)
         print(f'loop {phase1.tx_parts} with trial {_}')
         _ += 1
         ctl.write_remote_stream(topo)
 
         for __ in range(loopTime):
-            phase_temp = opStruct()
+            phase_temp = channelBalanceSolver()
             phase_temp.update_tx_parts(phase1.tx_parts)
             conn = ctl._start_replay(graph=topo, DURATION = 30)
             res = ctl._loop_apply(conn)
