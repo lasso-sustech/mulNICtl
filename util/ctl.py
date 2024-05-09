@@ -38,6 +38,23 @@ def _ip_extract_all(graph: Graph):
     with open("./temp/ip_table.json", "w") as f:
         json.dump(ip_table, f)
 
+    conn = Connector()
+    channel_table = {}
+    for device_name, ips in ip_table.items():
+        for if_name, ip in ips.items():
+            conn.batch(device_name, "get_channel", {"interface": if_name})
+            channel_table.update({device_name: {if_name: None}})
+    outputs = conn.executor.wait(1).fetch().apply()
+    results = [o["channel_info"] for o in outputs]
+    idx = 0
+    for device_name, ips in ip_table.items():
+        for if_name, ip in ips.items():
+            channel_table[device_name][if_name] = results[idx]
+            idx += 1
+    
+    with open("./temp/channel_table.json", "w") as f:
+        json.dump(channel_table, f)
+    
     return ip_table
 
 def _ip_associate(graph:Graph, ip_table:dict):
@@ -69,8 +86,7 @@ def validate_ip_addr(graph:Graph):
                 for ip_addr in _stream.tx_ipaddrs:
                     if ip_addr not in sender_ips:
                         print(f"Error: {sender} do not have ip address {ip_addr}")
-                    
-
+                        
 def _add_ipc_port(graph):
     """
     Add ipc port (remote and local) to graph
@@ -86,10 +102,11 @@ def _add_ipc_port(graph):
     return graph
 
 
-def _start_replay(graph:Graph, DURATION):
+def start_transmission(graph:Graph, DURATION):
     """
     Construct a transmission ready connector waiting to be applied
     """
+    validate_ip_addr(graph)
     conn = Connector()
     # start reception
     for device_name, links in graph.graph.items():
@@ -168,7 +185,7 @@ def fileTransfer(graph, target_ip, output_folder):
 
     conn.executor.wait(0.5).apply()
 
-def rtt_read(graph) -> List[dataStruct]:
+def read_rtt(graph) -> List[dataStruct]:
     conn = Connector()
     opStructs = []
     for device_name, links in graph.graph.items():
@@ -202,7 +219,7 @@ def rtt_read(graph) -> List[dataStruct]:
                 idx += 1
     return opStructs
 
-def write_remote_stream(graph: Graph):
+def create_tx_manifest(graph: Graph):
     conn = Connector()
     for device_name, links in graph.graph.items():
         for link_name, streams in links.items():
@@ -221,7 +238,7 @@ def write_remote_stream(graph: Graph):
     conn.executor.wait(0.1).apply()
     time.sleep(0.1)
 
-def _loop_apply(conn:Connector):
+def read_thu(conn:Connector):
     """
     Continuing apply the connector, fetch the result from remote until receiving outputs
     """

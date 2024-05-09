@@ -81,16 +81,16 @@ for tx_parts_1 in tx_parts_choice:
         phase1.update_tx_parts(temp.tx_parts)
         print(f'loop {phase1.tx_parts} with trial {_}')
         _ += 1
-        ctl.write_remote_stream(topo)
+        ctl.create_tx_manifest(topo)
 
         for __ in range(loopTime):
             phase_temp = channelBalanceSolver()
             phase_temp.update_tx_parts(phase1.tx_parts)
-            conn = ctl._start_replay(graph=topo, DURATION = 30)
-            res = ctl._loop_apply(conn)
+            conn = ctl.start_transmission(graph=topo, DURATION = 30)
+            res = ctl.read_thu(conn)
             print(res)
             try:
-                ctl.rtt_read(topo, [phase_temp])
+                ctl.read_rtt(topo, [phase_temp])
             except Exception as e:
                 print(e)
                 continue

@@ -21,6 +21,7 @@ def _list_to_c_array(arr: list, arr_type=ctypes.c_float):
 LINK_NAME_TO_TX_NAME = lambda link_name : link_name.split('_')[-2]
 LINK_NAME_TO_RX_NAME = lambda link_name : link_name.split('_')[-1]
 LINK_NAME_TO_PROT_NAME = lambda link_name : '_'.join(link_name.split('_')[1:-2])
+LINK_NAME_TO_TX_IF_NAME = lambda link_name : link_name.split('_')[0]
 
 class Graph:
     """
@@ -98,7 +99,7 @@ class Graph:
         del self.graph[device_name][link_name]
         del self.info_graph[device_name][link_name]
 
-    def ADD_STREAM(self, link_name: str, stream, target_rtt=0, name = '') -> None:
+    def ADD_STREAM(self, link_name: str, stream, name = '') -> None:
         """
         Add stream to corresponding link 
 
@@ -112,12 +113,13 @@ class Graph:
             target_rtt (int, optional): the QoS required rtt value. Defaults to 0.
             name (str, optional): name of stream, e.g "Speaker A". Defaults to ''.
         """
+        stream.validate()
         port_number = stream.port; tos = stream.tos
         device_name = LINK_NAME_TO_TX_NAME(link_name)       # from link name to device name
         _name = name if name != '' else str(port_number)+'@'+str(tos)
         self.graph[device_name][link_name].update({str(port_number)+'@'+str(tos): stream})
         self.info_graph[device_name][link_name].update(
-            {str(port_number)+'@'+str(tos): {"target_rtt": target_rtt, 'name': _name, "active": True}})
+            {str(port_number)+'@'+str(tos): {"target_rtt": stream.target_rtt, "active": True}})
         pass
 
     def REMOVE_STREAM(self, link_name:str, stream) -> None:
@@ -158,6 +160,18 @@ class Graph:
         """
         self.info_graph[device_name].update({protocol+'_ip_addr': ip_addr})
         pass
+    
+    def link_to_tx_ip(self, link_name:str) -> str:
+        """
+        Get the ip address of tx device over the link
+
+        Args:
+            link_name (str): name of link
+
+        Returns:
+            str: ip address of tx device
+        """
+        return self.info_graph[LINK_NAME_TO_TX_NAME(link_name)][LINK_NAME_TO_TX_IF_NAME(link_name)+'_ip_addr']
 
     def show(self) -> None:
         """

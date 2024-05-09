@@ -436,12 +436,121 @@ def test_create_file():
         
     f.write(']')
     
-    
+def test_get_channel():
+    from tap import Connector
+    from util.trans_graph import LINK_NAME_TO_TX_NAME, LINK_NAME_TO_TX_IF_NAME
+    import util.ctl as ctl
+    import util.qos as qos
+    from tools.read_graph import construct_graph
+    from util.solver import channelBalanceSolver, channelSwitchSolver, singleDirFlowTransSolver, gb_state
+    from util import stream
+    from typing import List
+    import os, json
+
+    import util.header as header
+
+    PARSESINGLEIPDEVICE = lambda x: [x, x]
+
+    S2MS_LIST = lambda x: [i * 1000 for i in x]
+
+
+
+    def create_logger_file(filename:str):
+        if not os.path.exists(os.path.dirname(filename)):
+            os.makedirs(os.path.dirname(filename))
+        f = open(filename, 'w')
+        f.write('[')
+        return f
+
+    def create_transmission(trans_manifests, arrivalGap = 16):
+        streams = []
+        for name in trans_manifests:
+            trans_manifest = trans_manifests[name]
+            if trans_manifest is None:
+                continue
+            conn = Connector()
+            sender = LINK_NAME_TO_TX_NAME(trans_manifest['link'])
+            file_name = f'{name}.npy'
+            print(f"Creating transmission file {file_name} with {trans_manifest['thru']} at {sender}")
+            conn.batch(sender, "create_file", {"thru": trans_manifest['thru'], "arrivalGap": arrivalGap, "name": f'{name}.npy', "num": 20000}).wait(0.5).apply()
+            
+            temp = stream.stream()
+            file_type = trans_manifest['file_type']
+            if file_type == 'file':
+                temp = temp.read_from_manifest('./config/stream/file.json')
+                temp.tos = 128
+            else:
+                temp = temp.read_from_manifest('./config/stream/proj.json')
+                temp.calc_rtt = True
+                
+            temp.npy_file = file_name
+            temp.tx_ipaddrs = trans_manifest['ip_addrs']; 
+            temp.tx_parts = [1, 1]; 
+            temp.port = trans_manifest['port']
+            topo.ADD_STREAM(trans_manifest['link'], temp)
+            
+            streams.append(temp)
+        return streams
+
+    def log_write(f, rtt_results):
+        for rtt_result in rtt_results:
+            f.write(json.dumps(rtt_result, indent=4, sort_keys=True, default=str))
+            f.write(',')
+        f.flush()
+        
+    f           = create_logger_file('expSrc/2024-5-7/experiment1/exp-result.json')
+    topo        = construct_graph("./config/topo/2024-5-5.txt") # Graph
+    ip_table = ctl._ip_extract_all(topo)
+    ctl._ip_associate(topo, ip_table)
+
+    links       = topo.get_links()
+
+    arrivalGap  = 16    #ms
+    fthru       = 600   #Mbps
+    pthru       = 50    #Mbps
+    ithru       = 100   #Mbps
+
+    trans_manifests = {
+        'file': None,
+        'proj3': {
+            'thru': pthru,
+            'link': links[1],
+            'port': 6204,
+            'file_type': 'proj',
+            'ip_addrs': [topo.link_to_tx_ip(links[0]), topo.link_to_tx_ip(links[1])],
+        },
+        'interference': {
+            'thru': ithru,
+            'link': links[2],
+            'port': 6205,
+            'file_type': 'file',
+            'ip_addrs': PARSESINGLEIPDEVICE(topo.link_to_tx_ip(links[2])),
+        },
+        'proj2': {
+            'thru': pthru,
+            'link': links[1],
+            'port': 6302,
+            'file_type': 'proj',
+            'ip_addrs': [topo.link_to_tx_ip(links[0]), topo.link_to_tx_ip(links[1])],
+        },
+    }
+
+    for link in links:
+        if_name = LINK_NAME_TO_TX_IF_NAME(link)
+        sender_name = LINK_NAME_TO_TX_NAME(link)
+        conn = Connector()
+        conn.batch(sender_name, 'get_channel', {'interface': if_name})
+        res = conn.executor.wait(0.5).fetch().apply()
+        print(if_name, res)
+        
+
+
     
 if __name__ == '__main__':
     # test_proj_transmission()
     # test_line_predict()
-    test_channel_throughput()
+    # test_channel_throughput()
+    test_get_channel()
     # test_local_throughput()
     # test_create_file()
 
