@@ -101,6 +101,20 @@ def _add_ipc_port(graph):
             port += 1
     return graph
 
+def config_route(graph:Graph, password:str):
+    conn = Connector()
+    for device_name, links in graph.graph.items():
+        interface_names = set()
+        for link_name, streams in links.items():
+            if streams == {}:
+                continue
+            sender = LINK_NAME_TO_TX_NAME(link_name)
+            prot = LINK_NAME_TO_PROT_NAME(link_name)
+            interface_names.add(prot)
+        conn.batch(device_name, "config_network", {"interface_names": list(interface_names), "password": password})
+        conn.executor.wait(0.1)
+    res = conn.executor.wait(0.1).fetch().apply()
+    return res
 
 def start_transmission(graph:Graph, DURATION):
     """
@@ -201,7 +215,6 @@ def read_rtt(graph) -> List[dataStruct]:
                 port_num, tos = stream_name.split("@")
                 conn.batch(sender, "read_rtt", {"port": port_num, "tos": tos})
     results = conn.executor.wait(0.5).fetch().apply()
-    print('rtt results', results)
     idx = 0
     for device_name, links in graph.graph.items():
         for link_name, streams in links.items():

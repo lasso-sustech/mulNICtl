@@ -63,9 +63,9 @@ class stream:
     
     def validate(self):
         with open('temp/ip_table.json', 'r') as f:
-            ip_table = json.load(f)
+            ip_table        = json.load(f)
         with open('temp/channel_table.json', 'r') as f:
-            channel_table = json.load(f)
+            channel_table   = json.load(f)
             
         if len(set(self.tx_ipaddrs)) > 1:
             for device, ips in ip_table.items():

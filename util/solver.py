@@ -188,9 +188,20 @@ class channelSwitchSolver:
         
         return self
 class singleDirFlowTransSolver:
-    def __init__(self, direction) -> None:
-        self.direction = direction
+    def __init__(self, direction, islog = False) -> None:
+        self.direction  = direction
         assert direction in [constHead.FLOW_TRANSFER_TO_CHANNEL0, constHead.FLOW_TRANSFER_TO_CHANNEL1, constHead.FLOW_STOP]
+        self.islog      = islog
+
+    def get_gap_rtt_of_target_channel(self, qoses):
+        interested_rtts = []
+        for qos in qoses:
+            constHead.PROJ_QOS_SCHEMA.validate(qos)
+            if self.direction == constHead.FLOW_TRANSFER_TO_CHANNEL0 and constHead.CHANNEL0 in qos['channels']:
+                interested_rtts.append( qos['target_rtt'] - qos[constHead.CHANNEL_RTTS][0])
+            elif self.direction == constHead.FLOW_TRANSFER_TO_CHANNEL1 and constHead.CHANNEL1 in qos['channels']:
+                interested_rtts.append( qos['target_rtt'] - qos[constHead.CHANNEL_RTTS][1])
+        return interested_rtts
 
     def compute_efficiency_index(self, qos):
         constHead.PROJ_QOS_SCHEMA.validate(qos)
@@ -205,110 +216,75 @@ class singleDirFlowTransSolver:
 
         if self.direction == constHead.FLOW_TRANSFER_TO_CHANNEL0:
             return channel_efficiencies[1] / channel_efficiencies[0]
-
         return channel_efficiencies[0] / channel_efficiencies[1]
 
-    def compute_RTT_gap(self, qos):
+
+    def thru_2b_transfered(self, qos, upperbound):
         constHead.PROJ_QOS_SCHEMA.validate(qos)
-        if len(qos['channels']) == 1:
-            if (
-                self.direction == constHead.FLOW_TRANSFER_TO_CHANNEL0
-                and qos["channels"][0] == constHead.CHANNEL0
-            ):
-                return qos["target_rtt"] - qos["rtt"]
-            if (
-                self.direction == constHead.FLOW_TRANSFER_TO_CHANNEL1
-                and qos["channels"][0] == constHead.CHANNEL1
-            ):
-                return qos["target_rtt"] - qos["rtt"]
-
-        if constHead.CHANNEL_RTTS in qos:
-            if constHead.FLOW_TRANSFER_TO_CHANNEL0:
-                return qos['target_rtt'] - qos[constHead.CHANNEL_RTTS][0]
-            return qos['target_rtt'] - qos[constHead.CHANNEL_RTTS][1]
-
-    def compute_propose_flow_thru(self, qos, upperbound):
-        constHead.PROJ_QOS_SCHEMA.validate(qos)
-        assert 'channel_rtt' in qos
-
-        channel_rtt = qos['channel_rtt']
-        thru = qos[constHead.THRU]
-        tx_parts = qos[constHead.TX_PARTS]
-        channel_thru = [thru * tx for tx in tx_parts]
+        
+        thru            = qos[constHead.THRU]
+        tx_parts        = qos[constHead.TX_PARTS]
+        
+        channel_thru    = [thru * tx for tx in tx_parts]
+        channel_rtt     = qos['channel_rtts']
 
         if self.direction == constHead.FLOW_TRANSFER_TO_CHANNEL0:
-            return min(channel_rtt[1], upperbound) * channel_thru[1] / channel_rtt[1]
+            return  min(channel_rtt[1], upperbound) * channel_thru[1] / channel_rtt[1]
+        return      min(channel_rtt[0], upperbound) * channel_thru[0] / channel_rtt[0]
 
-        return min(channel_rtt[0], upperbound) * channel_thru[0] / channel_rtt[0]
-
-    def compute_predict_rtt_space_change(self, qos, eff):
+    def predict_rtt_gap_change(self, qos, eff):
         constHead.PROJ_QOS_SCHEMA.validate(qos)
-        assert 'channel_rtt' in qos
-
-        channel_rtt = qos['channel_rtt']
-        thru = qos[constHead.THRU]
-        tx_parts = qos[constHead.TX_PARTS]
-        channel_thru = [thru * tx for tx in tx_parts]
+        channel_rtts = qos['channel_rtts']
 
         if self.direction == constHead.FLOW_TRANSFER_TO_CHANNEL0:
-            return channel_thru[1] / eff
+            return channel_rtts[1] / eff
+        return channel_rtts[0] / eff
 
-        return channel_thru[0] / eff
-
-    def flow_thru_to_control(self, qos, flow_thru):
+    def thru_2_tx_parts(self, qos, flow_thru):
         constHead.PROJ_QOS_SCHEMA.validate(qos)
         thru = qos[constHead.THRU]
         tx_parts = qos[constHead.TX_PARTS]
         transfered_part = flow_thru / thru
+        
         if self.direction == constHead.FLOW_TRANSFER_TO_CHANNEL0:
             return [tx_parts[0] - transfered_part, tx_parts[1] - transfered_part]
-
         return [tx_parts[0] + transfered_part, tx_parts[1] + transfered_part]
 
-    def solve(self, qos_list: list):
-        qos_list = get_proj_qos(qos_list)
-        mul_qos_list = get_mul_chan_qos(qos_list)
-        channel_controls = [
-            constHead.CHANNEL_CONTROL_SCHEMA.validate(qos) for qos in mul_qos_list
-        ]
-
-        if self.direction == constHead.FLOW_STOP:
-            return channel_controls
-
-        efficiencies        =   np.array([self.compute_efficiency_index(qos) for qos in mul_qos_list])
-
-        if len(efficiencies) == 0:
-            return []
-
+    def solve(self, qos_list: list) -> List[dict]:
+        qos_list            = get_proj_qos(qos_list)
+        mul_qos_list        = get_mul_chan_qos(qos_list)
+        rtt_gap             = self.get_gap_rtt_of_target_channel(qos_list)
+        
+        channel_controls    = [ constHead.CHANNEL_CONTROL_SCHEMA.validate(qos) for qos in mul_qos_list ]
+        efficiencies        = np.array( [ self.compute_efficiency_index(qos) for qos in mul_qos_list ] )
+        
+        if self.islog:
+            print(f"Efficiencies: {efficiencies}")
+            print(f"RTT Gaps: {rtt_gap}")
+        
         sorted_efficiencies, sorted_idx = zip(*sorted(zip(efficiencies, range(len(efficiencies)))))
-
-        rtt_gap = [ self.compute_RTT_gap(qos_list[idx]) for idx in sorted_idx   ]
-        assert all(_rtt_gap >= 0 for _rtt_gap in rtt_gap) 
-        min_rtt_gap = min(rtt_gap)
-
-        transfer_upper_bound = efficiencies * min_rtt_gap
-
-        for idx, (eff, uperbound) in enumerate(zip(sorted_efficiencies, transfer_upper_bound)):
-            orginal_idx = sorted_idx[idx]
-            propose_flow_thru = self.compute_propose_flow_thru(
-                mul_qos_list[orginal_idx], uperbound
-            )
-            channel_controls[orginal_idx].update(
-                {
-                    "tx_parts": self.flow_thru_to_control(
-                        mul_qos_list[orginal_idx], propose_flow_thru
-                    )
-                }
-            )
-            min_rtt_gap -= self.compute_predict_rtt_space_change(
-                mul_qos_list[orginal_idx], eff
-            )
-            if min_rtt_gap < 0:
+        
+        if self.islog:
+            print(f"Sorted Efficiencies: {sorted_efficiencies}")
+            print(f"Sorted Index: {sorted_idx}\n")
+        
+        if self.direction == constHead.FLOW_STOP or len(efficiencies) == 0:
+            return []
+        
+        min_rtt_gap         = min( rtt_gap )
+        for idx, eff in enumerate( sorted_efficiencies ):
+            if min_rtt_gap <= 0:
                 break
+            
+            orginal_idx         = sorted_idx[idx]
+            transfered_thru     = self.thru_2b_transfered( mul_qos_list[orginal_idx], min_rtt_gap * eff )
+            min_rtt_gap        -= self.predict_rtt_gap_change( mul_qos_list[orginal_idx], eff )
+            
+            channel_controls[orginal_idx].update({
+                "tx_parts": self.thru_2_tx_parts( mul_qos_list[orginal_idx], transfered_thru )
+            })
 
-        for control in channel_controls:
-            constHead.CHANNEL_CONTROL_SCHEMA.validate(control)
-
+        [ constHead.CHANNEL_CONTROL_SCHEMA.validate(control) for control in channel_controls ]
         return channel_controls
 
 class gb_state:

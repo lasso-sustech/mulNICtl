@@ -3,6 +3,9 @@ from util.constHead import QOS_SCHEMA
 
 class QosLogger:
     def __init__(self, filename:str, mode:str='w'):
+        abs_path = os.path.abspath(os.path.dirname(__file__))
+        print(abs_path)
+        
         self.filename   = filename
         self.f          = self.create_logger_file(mode = mode)
         
