@@ -256,10 +256,11 @@
         "config_network":{
             "description": "config network for transmission",
             "parameters":{
-                "interface": ""
+                "interface": "",
+                "password": ""
             },
             "commands":[
-                "cd tools; python3 set_route.py -i $interface"
+                "cd tools; echo $password | sudo -S python3 set_route.py -i $interface"
             ],
             "outputs": {
                 "cmd_return": {
@@ -281,6 +282,21 @@
             "commands":[
                 "cd tools; python3 create_data.py --thru $thru --arrivalGap $arrivalGap --name $name --variance $variance --arrivalVar $arrivalVar --num $num; mv $name ../stream-replay/data/"
             ]
+        },
+        "get_channel":{
+            "description": "get channel of specific interface",
+            "parameters":{
+                "interface": "wlan0"
+            },
+            "commands":[
+                "cd tools; python3 get_channel.py -i $interface"
+            ],
+            "outputs":{
+                "channel_info": {
+                    "cmd": "echo $output_0",
+                    "format":"(.*)"
+                }
+            }
         }
     }
 }
