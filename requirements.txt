@@ -1,0 +1,4 @@
+matplotlib==3.8.0
+numpy==1.26.4
+psutil==5.9.0
+schema==0.7.5
