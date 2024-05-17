@@ -18,6 +18,7 @@ YELLOW_LIGHT    = 2
 CHANNEL_RTTS    = 'channel_rtts'
 THRU            = 'file_thru'
 TX_PARTS        = 'tx_parts'
+RTT             = 'rtt'
 ################################
 
 CHANNEL_RTT_SCHEMA  = Schema([Or(float, int),  Or(float, int)])
@@ -85,7 +86,8 @@ traffic_config_schema = Schema(Or({
     'link'      : str,
     'port'      : int,
     'file_type' : Or('file', 'proj'),
-    'ip_addrs'  : list[str],
+    'ip_addrs'  : [str],
     'name'      : str,
     'tx_parts'  : TX_PARTS_SCHEMA,
+    Optional('tos'): int,
 }, None))
