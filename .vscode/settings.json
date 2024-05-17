@@ -1,5 +1,8 @@
 {
     "rust-analyzer.linkedProjects": [
         "./stream-replay-rx/Cargo.toml"
+    ],
+    "python.analysis.extraPaths": [
+        "./run_"
     ]
 }
