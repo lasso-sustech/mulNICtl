@@ -224,7 +224,10 @@ def read_rtt(graph) -> List[dataStruct]:
             for stream_name, stream_handle in streams.items():
                 if stream_handle.calc_rtt == False:
                     continue
-                data = dataStruct(results[idx])
+                try:
+                    data = dataStruct(results[idx])
+                except:
+                    raise ValueError('RTT value invalid')
                 opStructs.append(data)
                 graph.info_graph[device_name][link_name][stream_name].update(
                     {"channel_val": data}
@@ -257,6 +260,7 @@ def read_thu(conn:Connector):
     """
     conn.fetch()
     idx = 0
+    maximum_retry = 5
     while True:
         try:
             # print("try to apply", idx)
@@ -266,4 +270,19 @@ def read_thu(conn:Connector):
             break
         except Exception as e:
             print(e)
-            break
+            if idx >= maximum_retry:
+                break
+            continue
+        
+def clean_up_receiver(graph: Graph, password:str):
+    conn = Connector()
+    for device_name, links in graph.graph.items():
+        for link_name, streams in links.items():
+            if streams == {}:
+                continue
+            receiver = LINK_NAME_TO_RX_NAME(link_name)
+            conn = Connector()
+            conn.batch(receiver, "clean_up_rx",{'password': password})
+            conn.executor.wait(0.1)
+    conn.executor.wait(0.1).apply()
+    time.sleep(0.1)

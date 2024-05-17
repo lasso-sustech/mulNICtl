@@ -5,7 +5,7 @@
         "data": "stream-replay/data/*",
         "src": "stream-replay/src/*",
         "udp_rx" : "stream-replay/udp_rx.py",
-        "replay_rx": "stream-replay-rx/src/*",
+        "replay_rx": "stream-replay-rx/*",
         "tool":"tools/*",
         "util": "util/*"
     },
@@ -44,11 +44,18 @@
                 } 
             }
         },
-        "warm_up":{
+        "warm_up_tx":{
             "description": "Cargo build stream-replay.",
             "parameters":{},
             "commands": [
                 "(cd stream-replay; cargo build --release)"
+            ]
+        },
+        "warm_up_rx":{
+            "description": "Cargo build stream-replay.",
+            "parameters":{},
+            "commands": [
+                "(cd stream-replay-rx; cargo build --release)"
             ]
         },
         "init_stream": {
@@ -297,6 +304,15 @@
                     "format":"(.*)"
                 }
             }
+        },
+        "clean_up_rx":{
+            "description": "clean up stream-replay-rx",
+            "parameters":{
+                "password": ""
+            },
+            "commands":[
+                "echo $password | sudo -S killall stream-replay-rx"
+            ]
         }
     }
 }
