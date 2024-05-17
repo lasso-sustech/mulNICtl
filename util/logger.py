@@ -17,9 +17,11 @@ class QosLogger:
             f.write('[')
         return f
 
-    def log_write(self, qoses):
+    def log_write(self, qoses, qos_schema = None):
+        if qos_schema is None:
+            qos_schema = QOS_SCHEMA
         for idx, qos in enumerate(qoses):
-            QOS_SCHEMA.validate(qos)
+            qos_schema.validate(qos)
         self.f.write(json.dumps(qoses, indent=4, sort_keys=True, default=str))
         self.f.write(',')
         self.f.flush()
