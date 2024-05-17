@@ -14,7 +14,7 @@ class dataStruct:
             float(rttDict["rtt"][2]) * scale,
             float(rttDict["rtt"][3]) * scale,
         ]
-        self.channel_rtts = self.correct_channel_rtt()
+        # self.channel_rtts = self.correct_channel_rtt()
         self.channel_probabilities = [
             float(rttDict["rtt"][4]),
             float(rttDict["rtt"][5]),
@@ -47,9 +47,10 @@ class channelBalanceSolver:
         self.inc_direction = [-1, 1]
         self.channel_rtts = [0, 0]
         self.channel_probabilities = [0 , 0]
-        self.epsilon_rtt = 0.5 # 10%
+        self.epsilon_rtt = 2 # 10%
         self.epsilon_prob_upper = 0.6 # probability that packet send all the packet
         self.epsilon_prob_lower = 0.01  # probability that packet do not send all the packet
+        self.target_rtt         = 16
 
     def __add__(self, other):
         if isinstance(other, channelBalanceSolver):
@@ -58,14 +59,14 @@ class channelBalanceSolver:
             self.channel_rtts = [x + y for x, y in zip(self.channel_rtts, other.channel_rtts)]
             self.channel_probabilities = [x + y for x, y in zip(self.channel_probabilities, other.channel_probabilities)]
         return self
-    
+
     def __truediv__(self, fraction):
         assert(fraction > 0)
         self.rtt /= fraction
         self.channel_rtts = [x / fraction for x in self.channel_rtts]
         self.channel_probabilities = [x / fraction for x in self.channel_probabilities]
         return self
-    
+
     def correct_channel_rtt(self):
         channel_rtts = []
         if self.channel_rtts[0] == 0:
@@ -85,13 +86,19 @@ class channelBalanceSolver:
         self.channel_rtts = qos["channel_rtts"]
         self.channel_probabilities = qos["channel_probabilities"]
         return self
-    
+
     def update_tx_parts(self, tx_parts):
         self.tx_parts = tx_parts
         return self
 
+    def required_balance(self):
+        return any( rtt > self.target_rtt for rtt in self.channel_rtts)
+
     def solve_by_rtt_balance(self):
         assert(self.tx_parts[0] == self.tx_parts[1])
+        # if not self.required_balance() and any( 0 == float(rtt) for rtt in self.channel_rtts):
+        #     constHead.TX_PARTS_SCHEMA.validate(self.tx_parts)
+        #     return self
         if abs(self.channel_rtts[0] - self.channel_rtts[1]) < self.epsilon_rtt:
             constHead.TX_PARTS_SCHEMA.validate(self.tx_parts)
             return self
@@ -102,10 +109,10 @@ class channelBalanceSolver:
             self.tx_parts[1] = self.tx_parts[0]
             constHead.TX_PARTS_SCHEMA.validate(self.tx_parts)
             return self
-    
+
     def check_load_balance(self):
         return abs(self.channel_rtts[0] - self.channel_rtts[1]) < self.epsilon_rtt
-    
+
     def extend_load_balance(self):
         for idx, pro in enumerate(self.channel_probabilities):
             assert 0 <= pro <= 1
@@ -116,14 +123,14 @@ class channelBalanceSolver:
             self.tx_parts[idx] = round(max(0, min(1, self.tx_parts[idx])),2)
         constHead.TX_PARTS_SCHEMA.validate(self.tx_parts)
         return self
-        
+
     def apply(self, _stream):
         _stream.tx_parts = self.tx_parts
         return _stream
-    
+
     def __str__(self) -> str:
         return json.dumps(self.__dict__, indent=2)
-    
+
     def load_from_dict(self, _dict):
         for key, value in _dict.items():
             setattr(self, key, value)
@@ -131,62 +138,84 @@ class channelBalanceSolver:
         return self
 
 class channelSwitchSolver:
-    def __init__(self, target_rtt = 16, channel_idx = 0) -> None:
+    def __init__(self, target_rtt = 16, switch_state = constHead.CHANNEL0) -> None:
         self.rtt_predict = rttPredictor()
         self.target_rtt = target_rtt # ms
-        self.switch_state = constHead.CHANNEL0
+        self.switch_state = switch_state
         self.islog = False
-    
+        self.back_switch_threshold = 0.68
+        self.last_tx_parts = [0, 0]
+
+    def is_switch(self, qos):
+        constHead.PROJ_QOS_SCHEMA.validate(qos)
+        tx_parts = qos[constHead.TX_PARTS]
+        if all( part == 0 for part in tx_parts) or all( part == 1 for part in tx_parts):
+            return False
+        actual_tx_parts = [ 1 - tx_parts[0], tx_parts[1]]
+        channel_rtt = qos[constHead.CHANNEL_RTTS]
+        predicted_rtt = [ channel_rtt[idx] / actual_tx_parts[idx]   for idx in range(len(actual_tx_parts)) ]
+        if any( rtt < qos['target_rtt'] * self.back_switch_threshold for rtt in predicted_rtt):
+            print(f"Channel RTT: {channel_rtt}, Predicted RTT: {predicted_rtt}, Target RTT: {qos['target_rtt'] * self.back_switch_threshold }")
+            return True
+        print(f"Predicted RTT: {predicted_rtt}, Target RTT: {qos['target_rtt'] * self.back_switch_threshold}")
+        return False
+
     def print_log(self, log):
         if self.islog:
             print(log)
-            
+
     def is_backward_switch_able(self):
 
         tx_parts = [0, 0]
         predicted_val = self.rtt_predict.predict(tx_parts)
         self.print_log(f"Predicted CH1 RTT: {predicted_val[0]}, Target RTT: {self.target_rtt}")
         channel_0_val = predicted_val[0]
-        
+
         tx_parts = [1, 1]
         predicted_val = self.rtt_predict.predict(tx_parts)
         self.print_log(f"Predicted CH2 RTT: {predicted_val[1]}, Target RTT: {self.target_rtt}")
         channel_1_val = predicted_val[1]
-        
+
         if predicted_val[0] < self.target_rtt and channel_1_val > self.target_rtt:
             self.switch_state = constHead.CHANNEL0
             return self
-        
+
         elif predicted_val[1] < self.target_rtt and channel_0_val > self.target_rtt:
             self.switch_state = constHead.CHANNEL1
             return self
-        
+
         elif channel_0_val <= channel_1_val and channel_1_val <= self.target_rtt:
             self.switch_state = constHead.CHANNEL0
             return self
         elif channel_1_val <= channel_0_val and channel_0_val <= self.target_rtt:
             self.switch_state = constHead.CHANNEL1
             return self
-        
-        self.print_log(f"Predicted RTT: {predicted_val[0]}, {predicted_val[1]}, Target RTT: {self.target_rtt}")      
+
+        self.print_log(f"Predicted RTT: {predicted_val[0]}, {predicted_val[1]}, Target RTT: {self.target_rtt}")
         return self
-    
+
     def switch(self, tx_parts, channel_rtt):
         def is_rtt_satisfy(rtt):
             return rtt < self.target_rtt
-        
+
         self.rtt_predict.update(tx_parts, channel_rtt)
-                
+        self.last_tx_parts = tx_parts
+
         if (not is_rtt_satisfy(channel_rtt[0]) and channel_rtt[1] == 0) or (not is_rtt_satisfy(channel_rtt[1]) and channel_rtt[0] == 0):
             self.switch_state = constHead.MUL_CHAN
-        
+
         if all(is_rtt_satisfy(rtt) for rtt in channel_rtt) and self.switch_state == constHead.MUL_CHAN:
             try:
                 return self.is_backward_switch_able()
             except Exception as e:
                 print(e)
-        
+
         return self
+
+    def next_parts(self):
+        return [ min(part + 0.2, 1) for part in self.last_tx_parts ]
+
+
 class singleDirFlowTransSolver:
     def __init__(self, direction, islog = False) -> None:
         self.direction  = direction
@@ -221,12 +250,19 @@ class singleDirFlowTransSolver:
 
     def thru_2b_transfered(self, qos, upperbound):
         constHead.PROJ_QOS_SCHEMA.validate(qos)
-        
+
         thru            = qos[constHead.THRU]
         tx_parts        = qos[constHead.TX_PARTS]
-        
+
         channel_thru    = [thru * tx for tx in tx_parts]
         channel_rtt     = qos['channel_rtts']
+
+        if self.islog:
+            print(f"Channel RTT: {channel_rtt}")
+            if self.direction == constHead.FLOW_TRANSFER_TO_CHANNEL0:
+                print(f"RTT red, left rtt * eta: {channel_rtt[1]}  {upperbound}")
+            else:
+                print(f"RTT red, left rtt * eta: {channel_rtt[0]}  {upperbound}")
 
         if self.direction == constHead.FLOW_TRANSFER_TO_CHANNEL0:
             return  min(channel_rtt[1], upperbound) * channel_thru[1] / channel_rtt[1]
@@ -241,11 +277,15 @@ class singleDirFlowTransSolver:
         return channel_rtts[0] / eff
 
     def thru_2_tx_parts(self, qos, flow_thru):
+        def quantized_control(part):
+            ## part should have 2 decimal places
+            return round(part, 2)
+
         constHead.PROJ_QOS_SCHEMA.validate(qos)
         thru = qos[constHead.THRU]
         tx_parts = qos[constHead.TX_PARTS]
         transfered_part = flow_thru / thru
-        
+
         if self.direction == constHead.FLOW_TRANSFER_TO_CHANNEL0:
             return [tx_parts[0] - transfered_part, tx_parts[1] - transfered_part]
         return [tx_parts[0] + transfered_part, tx_parts[1] + transfered_part]
@@ -254,32 +294,36 @@ class singleDirFlowTransSolver:
         qos_list            = get_proj_qos(qos_list)
         mul_qos_list        = get_mul_chan_qos(qos_list)
         rtt_gap             = self.get_gap_rtt_of_target_channel(qos_list)
-        
+
         channel_controls    = [ constHead.CHANNEL_CONTROL_SCHEMA.validate(qos) for qos in mul_qos_list ]
         efficiencies        = np.array( [ self.compute_efficiency_index(qos) for qos in mul_qos_list ] )
-        
+
         if self.islog:
             print(f"Efficiencies: {efficiencies}")
             print(f"RTT Gaps: {rtt_gap}")
-        
-        sorted_efficiencies, sorted_idx = zip(*sorted(zip(efficiencies, range(len(efficiencies)))))
-        
+
+        sorted_efficiencies, sorted_idx = zip(*sorted(zip(efficiencies, range(len(efficiencies))), reverse=True))
+
         if self.islog:
             print(f"Sorted Efficiencies: {sorted_efficiencies}")
             print(f"Sorted Index: {sorted_idx}\n")
-        
+
         if self.direction == constHead.FLOW_STOP or len(efficiencies) == 0:
             return []
-        
+
         min_rtt_gap         = min( rtt_gap )
         for idx, eff in enumerate( sorted_efficiencies ):
             if min_rtt_gap <= 0:
                 break
-            
+
             orginal_idx         = sorted_idx[idx]
             transfered_thru     = self.thru_2b_transfered( mul_qos_list[orginal_idx], min_rtt_gap * eff )
+            if self.islog:
+                print(f"Transfered Thru: {transfered_thru}")
+                print(f"Min RTT Gap: {min_rtt_gap} {min_rtt_gap - self.predict_rtt_gap_change( mul_qos_list[orginal_idx], eff )}")
+
             min_rtt_gap        -= self.predict_rtt_gap_change( mul_qos_list[orginal_idx], eff )
-            
+
             channel_controls[orginal_idx].update({
                 "tx_parts": self.thru_2_tx_parts( mul_qos_list[orginal_idx], transfered_thru )
             })
@@ -287,38 +331,40 @@ class singleDirFlowTransSolver:
         [ constHead.CHANNEL_CONTROL_SCHEMA.validate(control) for control in channel_controls ]
         return channel_controls
 
+
+
 class gb_state:
     def __init__(self) -> None:
         self.state = [None, None]
-        
+
     def update_gb_state(self, qoses):
         channel_lights = [None, None]
         qoses = get_proj_qos(qoses)
         for qos in qoses:
             constHead.PROJ_QOS_SCHEMA.validate(qos)
-            
+
             if qos[constHead.CHANNEL_RTTS][0] > qos['target_rtt']:
                 channel_lights[0] = constHead.RED_LIGHT
             if qos[constHead.CHANNEL_RTTS][1] > qos['target_rtt']:
                 channel_lights[1] = constHead.RED_LIGHT
-                
+
         if channel_lights[0] is None:
             channel_lights[0] = constHead.GREEN_LIGHT
         if channel_lights[1] is None:
             channel_lights[1] = constHead.GREEN_LIGHT
         self.state = channel_lights
         return self
-    
+
     def get_gb_state(self):
         return self.state
-            
+
     def flow_flag(self):
         if self.state[0] == constHead.RED_LIGHT and self.state[1] == constHead.GREEN_LIGHT:
             return constHead.FLOW_TRANSFER_TO_CHANNEL1
         if self.state[1] == constHead.RED_LIGHT and self.state[0] == constHead.GREEN_LIGHT:
             return constHead.FLOW_TRANSFER_TO_CHANNEL0
         return constHead.FLOW_STOP
-    
+
     def policy(self):
         actions = {
             constHead.FLOW_DIR: self.flow_flag()
