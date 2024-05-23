@@ -165,16 +165,15 @@
                 }
             }
         },
-        "record_mcs":{
+        "read_mcs":{
             "description":"Compute the mcs value",
             "parameters":{
-                "target_addr": "",
-                "duration": 0
+                "ifname": ""
             },
             "outputs": {
                 "mcs_value": {
-                    "cmd":"cd tools; python3 record_mcs.py $target_addr $duration",
-                    "format":"(\\d+\\.\\d+)"
+                    "cmd":"cd tools; python3 read_mcs.py $ifname",
+                    "format":"TX bitrate for interface:\\s+(\\d+(\\.\\d+)?)"
                 }
             }
         },

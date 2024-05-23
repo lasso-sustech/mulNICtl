@@ -91,3 +91,24 @@ traffic_config_schema = Schema(Or({
     'tx_parts'  : TX_PARTS_SCHEMA,
     Optional('tos'): int,
 }, None))
+
+
+schema_dict = {Optional('MCS'): float}
+schema_dict.update(PROJ_QOS_SCHEMA.__dict__['_schema'])
+if_rtt_qos_schema = Schema(schema_dict)
+
+schema_dict = {Optional('MCS'): float}
+schema_dict.update(FILE_QOS_SCHEMA.__dict__['_schema'])
+if_thru_qos_schema = Schema(schema_dict)
+
+STREAM_INFO_SCHEMA = Schema({
+    "target_rtt": Or(float, int),
+    "active"    : bool,
+})
+
+INTERFACE_INFO_SCHEMA = Schema({
+    "MCS": Or(str, float),
+    "ipc_port": int,
+    "local_port": int,
+    Optional(str): STREAM_INFO_SCHEMA,
+})

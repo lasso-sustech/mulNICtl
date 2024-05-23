@@ -3,9 +3,10 @@ import sys
 import os
 import time
 from util.trans_graph import Graph
-from util.trans_graph import LINK_NAME_TO_TX_NAME, LINK_NAME_TO_RX_NAME, LINK_NAME_TO_PROT_NAME
+from util.trans_graph import LINK_NAME_TO_TX_NAME, LINK_NAME_TO_RX_NAME, LINK_NAME_TO_PROT_NAME, LINK_NAME_TO_TX_IF_NAME
 from util.solver import dataStruct
 from util.stream import stream, create_command
+import util.constHead as constHead
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
 sys.path.append(parent)
@@ -115,6 +116,34 @@ def config_route(graph:Graph, password:str):
         conn.executor.wait(0.1)
     res = conn.executor.wait(0.1).fetch().apply()
     return res
+
+def read_mcs(graph:Graph):
+    conn = Connector()
+    for device_name, links in graph.info_graph.items():
+        for link_name, streams in links.items():
+            try:
+                constHead.INTERFACE_INFO_SCHEMA.validate(streams)
+            except:
+                continue
+            sender = LINK_NAME_TO_TX_NAME(link_name)
+            ifname = LINK_NAME_TO_TX_IF_NAME(link_name)
+            conn.batch(sender, "read_mcs", {"ifname": ifname}).wait(0.1)
+    results = conn.executor.wait(0.1).fetch().apply()
+    idx = 0
+    for device_name, links in graph.info_graph.items():
+        for link_name, streams in links.items():
+            try:
+                constHead.INTERFACE_INFO_SCHEMA.validate(streams)
+            except:
+                continue
+            data = results[idx] # wlx081f7163a94f
+            mcs = float(eval(data.get("mcs_value"))[0])
+            ifname = LINK_NAME_TO_TX_IF_NAME(link_name)
+            graph.info_graph[device_name][link_name].update(
+                {"MCS": mcs}
+            )
+            idx += 1
+    return results
 
 def start_transmission(graph:Graph, DURATION):
     """

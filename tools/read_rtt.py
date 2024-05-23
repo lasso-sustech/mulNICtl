@@ -3,13 +3,37 @@ def mean_of_quantile(rtts):
     rtts = np.array(rtts)
     rtts = rtts[rtts != 0]
     if len(rtts) == 0:
-        return 0
-    percent_25 = np.percentile(rtts, 25)
-    percent_75 = np.percentile(rtts, 50)
+        return []
+    percent_25 = np.percentile(rtts, 10)
+    percent_75 = np.percentile(rtts, 90)
     
-    mean_value = np.mean([i for i in rtts if percent_25 <= i <= percent_75])
-    return mean_value
-    
+    idxes = []
+    for i in range(len(rtts)):
+        if percent_25 <= rtts[i] <= percent_75:
+            idxes.append(i)
+    return idxes
+
+def get_rtt_from_idexes(rtts, idxes):
+    res_rtt = []
+    for i in idxes:
+        res_rtt.append(rtts[i])
+    return res_rtt
+
+def filter_rtt(rtts):
+    mean_rtts  = [ np.mean(rtt) for rtt in rtts ]
+    filtered_rtts = [[], [], []]
+    if all(rtt > 0 for rtt in mean_rtts):
+        for i in range(len(rtts[0])):
+            if rtts[1][i] == 0 or rtts[2][i] == 0:
+                continue
+            filtered_rtts[0].append(rtts[0][i])
+            filtered_rtts[1].append(rtts[1][i])
+            filtered_rtts[2].append(rtts[2][i])
+        return filtered_rtts
+    else:
+        return rtts
+                
+            
 def read_rtt(file_addr):
     rtt = [[], [], []]
     num = 0
@@ -33,11 +57,18 @@ def read_rtt(file_addr):
                     rtt[2][seq] = float(line[1])
                 # rtt[1][num].append(float(line[2]))
                 # rtt[2][num].append(float(line[3]))
+                
     ## average rtt
     average_rtt = [0,0,0]    
-    average_rtt[0] = mean_of_quantile(rtt[0])
-    average_rtt[1] = mean_of_quantile(rtt[1])
-    average_rtt[2] = mean_of_quantile(rtt[2])
+    rtt = filter_rtt(rtt)
+    for i in range(3):
+        rtt[i] = np.array(rtt[i])
+
+    idxes = mean_of_quantile(rtt[0])
+    print(f'idxes: {idxes}')
+    average_rtt[0] = np.mean(get_rtt_from_idexes(rtt[0], idxes))
+    average_rtt[1] = np.mean(get_rtt_from_idexes(rtt[1], idxes))
+    average_rtt[2] = np.mean(get_rtt_from_idexes(rtt[2], idxes))
     
     ## probability of non-zero rtt
     probability = [0,0]

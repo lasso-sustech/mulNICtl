@@ -48,3 +48,12 @@ def get_mul_chan_qos(qos_list):
         except:
             pass
     return mul_chan_qos
+
+def order_qos(qos_list, qos_names):
+    assert len(qos_list) == len(qos_names)
+    ordered_qos = []
+    for qos_name in qos_names:
+        for qos in qos_list:
+            if qos['name'] == qos_name:
+                ordered_qos.append(qos)
+    return ordered_qos
