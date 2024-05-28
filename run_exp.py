@@ -108,8 +108,29 @@ def exp_2024_5_21_3():
     ## run exp
     import exp
 
+def exp_2024_5_23():
+    import sys
+    sys.path.append('./expSrc/2024-5-23/experiment1')
+    ## run exp
+    import exp
+    
+def exp_2024_5_26():
+    import sys
+    sys.path.append('./expSrc/2024-5-26/experiment1')
+    ## run exp
+    import exp
+    
+def exp_2024_5_27():
+    import sys
+    sys.path.append('./expSrc/2024-5-27/experiment1')
+    ## run exp
+    import exp
+
 # exp_2024_5_14()
 # exp_2024_5_17()
 # exp_2024_5_20()
 # exp_2024_5_21()
-exp_2024_5_21_3()
+# exp_2024_5_21_3()
+# exp_2024_5_23()
+# exp_2024_5_26()
+exp_2024_5_27()

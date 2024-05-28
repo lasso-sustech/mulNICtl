@@ -1,11 +1,11 @@
 import json
 import numpy as np
 
-from util.predictor import rttPredictor
+from util.predictor import rttPredictor, thruRTTPredictor
 import util.constHead as constHead
 from util.trans_graph import Graph, LINK_NAME_TO_TX_IF_NAME
-from util.qos import get_mul_chan_qos, get_proj_qos, order_qos
-from typing import List
+from util.qos import get_mul_chan_qos, get_proj_qos, order_qos, get_file_qos, get_qos_by_name, get_qoss_by_channel, align_qos
+from typing import List 
 
 class dataStruct:
     def __init__(self, rttDict, scale = 1000):
@@ -471,6 +471,76 @@ class channelS2DAppSolver:
                 controls.append({'name': qos['name'], 'tx_parts': qos['tx_parts']})
         return controls
 
+class thruSolver:
+    @staticmethod
+    def next_thru_control(qoses, name = ''):
+        file_qos = get_file_qos(qoses)
+        ctl_name = name
+        if name == '':
+            print('No name given, use the first file qos as the target')
+            ctl_name = file_qos[0][constHead.NAME]
+        file = get_qos_by_name(qoses, ctl_name)
+        control = constHead.THRU_CONTROL_SCHEMA.validate(file)
+        control[constHead.THRU_CONTROL] = int(control[constHead.THRU_CONTROL] / 2)
+        return control
+        
+    @staticmethod
+    def solve(last_qoses, qoses, name = ''):
+        ## detect files 
+        file_qos = get_file_qos(qoses)
+        ctl_name = name
+        if name == '':
+            ctl_name = file_qos[0][constHead.NAME]
+        ## Get target
+        file    = get_qos_by_name(last_qoses, ctl_name)
+        file_   = get_qos_by_name(qoses, ctl_name)
+        assert file[constHead.CHANNEL] == file_[constHead.CHANNEL]
+        channel_val = file[constHead.CHANNEL][0]
+        print(f"Channel: {channel_val}")
+        ## target proj
+        projs   = get_qoss_by_channel(get_proj_qos(last_qoses), channel_val)
+        projs_  = get_qoss_by_channel(get_proj_qos(qoses), channel_val)
+        assert len(projs) == len(projs_)
+        
+        projs, projs_  = align_qos(projs, projs_)
+        
+        channel_rtt_idx = 0 if channel_val == constHead.CHANNEL0 else 1
+        ## compute constaint
+        constraint_funcs = []
+        for proj, proj_ in zip(projs, projs_):
+            thru_predictor = thruRTTPredictor()
+            
+            ## create target data
+            data = {}; data.update({constHead.RTT: proj[constHead.CHANNEL_RTTS][channel_rtt_idx]}); data.update(file)
+            print('last data:', data)
+            thru_predictor.update(data)
+            
+            data = {}; data.update({constHead.RTT: proj_[constHead.CHANNEL_RTTS][channel_rtt_idx]}); data.update(file_)
+            print('current data:', data)
+            thru_predictor.update(data)
+            
+            constraint_funcs.append(thru_predictor.get_constraint(proj_))
+            
+        def positive_constraint(x):
+            return x
+        constraint_funcs.append(positive_constraint)
+        inequality_constraints = [ {'type': 'ineq', 'fun': con} for con in constraint_funcs]
+        
+        ## find feasible point
+        def obj_func(x):
+            return -x
+        from scipy.optimize import minimize
+        res = minimize(obj_func, np.array([0.5]), constraints=inequality_constraints, tol=1e-6, method='SLSQP')
+        
+        control = {}
+        control['name'] = ctl_name
+        throttle = int(res.x[0])
+        if throttle == 0:
+            throttle = 1
+        control[constHead.THRU_CONTROL] = throttle
+        constHead.THRU_CONTROL_SCHEMA.validate(control)
+        return control
+            
 class gb_state:
     def __init__(self) -> None:
         self.state = [None, None]

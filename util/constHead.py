@@ -19,6 +19,10 @@ CHANNEL_RTTS    = 'channel_rtts'
 THRU            = 'file_thru'
 TX_PARTS        = 'tx_parts'
 RTT             = 'rtt'
+TARGET_RTT      = 'target_rtt'
+NAME            = 'name'
+CHANNEL         = 'channels'
+THRU_CONTROL    = 'throttle'
 ################################
 
 CHANNEL_RTT_SCHEMA  = Schema([Or(float, int),  Or(float, int)])
@@ -49,7 +53,9 @@ PROJ_QOS_SCHEMA = Schema(
 FILE_QOS_SCHEMA = Schema(
     {
         "file_thru": Use(str_to_float_or_int),
+        'throttle' : Use(str_to_float_or_int),
         "name": str,
+        "channels": [Or(CHANNEL0, CHANNEL1)],
     },
     ignore_extra_keys=True,
 )
@@ -75,6 +81,11 @@ DOUBLE_CHANNEL_SCHEMA = Schema(
 CHANNEL_CONTROL_SCHEMA = Schema({
     'tx_parts'  : TX_PARTS_SCHEMA,
     'name'      : str,
+}, ignore_extra_keys=True)
+
+THRU_CONTROL_SCHEMA = Schema({
+    'throttle' :  Use(str_to_float_or_int),
+    'name'     : str,
 }, ignore_extra_keys=True)
 
 GB_CONTROL_SCHEMA = Schema({
@@ -112,3 +123,8 @@ INTERFACE_INFO_SCHEMA = Schema({
     "local_port": int,
     Optional(str): STREAM_INFO_SCHEMA,
 })
+
+THRU_PREDICT_SCHEMA = Schema({
+    THRU_CONTROL    : Use(str_to_float_or_int),
+    RTT     : Or(float, int),
+}, ignore_extra_keys=True)

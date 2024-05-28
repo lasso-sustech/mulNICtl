@@ -8,8 +8,17 @@ def get_wireless_channel(interface):
         match = re.search(r'channel\s+(\d+)', output)
         if match:
             return int(match.group(1))
-        else:
-            return None
+        
+        ## Try with iw dev link, use frequency
+        output = subprocess.check_output(['iw', 'dev', interface, 'link']).decode('utf-8')
+        match = re.search(r'freq:\s+(\d+)', output)
+        if match:
+            freq = int(match.group(1))
+            if 2412 <= freq <= 2484:
+                return (freq - 2412) // 5 + 1
+            elif 5180 <= freq <= 5825:
+                return (freq - 5180) // 5 + 36
+        return None
     except subprocess.CalledProcessError:
         return None
 

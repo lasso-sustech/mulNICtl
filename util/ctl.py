@@ -137,7 +137,10 @@ def read_mcs(graph:Graph):
             except:
                 continue
             data = results[idx] # wlx081f7163a94f
-            mcs = float(eval(data.get("mcs_value"))[0])
+            try:
+                mcs = float(eval(data.get("mcs_value"))[0])
+            except:
+                raise ValueError(f'{link_name} do not have mcs, please check 1. topo setting, 2. network connection issue' )
             ifname = LINK_NAME_TO_TX_IF_NAME(link_name)
             graph.info_graph[device_name][link_name].update(
                 {"MCS": mcs}
@@ -229,6 +232,7 @@ def fileTransfer(graph, target_ip, output_folder):
     conn.executor.wait(0.5).apply()
 
 def read_rtt(graph) -> List[dataStruct]:
+    
     conn = Connector()
     opStructs = []
     for device_name, links in graph.graph.items():
@@ -256,7 +260,7 @@ def read_rtt(graph) -> List[dataStruct]:
                 try:
                     data = dataStruct(results[idx])
                 except:
-                    raise ValueError('RTT value invalid')
+                    raise ValueError(f'stream {stream_name} transmitted on link {link_name}:\n\t RTT not found, please check: 1. NIC connection 2. port overlapping')
                 opStructs.append(data)
                 graph.info_graph[device_name][link_name][stream_name].update(
                     {"channel_val": data}

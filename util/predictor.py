@@ -1,6 +1,7 @@
 import numpy as np
-
+import util.constHead as constHead
 from util.constHead import TX_PARTS_SCHEMA, CHANNEL_RTT_SCHEMA
+
 
 class predictor():
     def __init__(self, len_max = 3) -> None:
@@ -74,7 +75,6 @@ class rttPredictor():
         return constraints_5g, constraints_2g
         # if len(points) == 0:
             
-        
     def get_object(self):
         ## compute tx_parts for maximum channel rtt
         assert self.channel_5g.poly is not None
@@ -85,3 +85,19 @@ class rttPredictor():
             return (self.channel_5g.poly(x) - self.channel_2g.poly(x))**2 / 20
         
         return obj_func
+    
+class thruRTTPredictor():
+    def __init__(self) -> None:
+        self.thru_predictor = predictor()
+    
+    def update(self, data):
+        data = constHead.THRU_PREDICT_SCHEMA.validate(data)
+        self.thru_predictor.update(data[constHead.THRU_CONTROL], data[constHead.RTT])
+        
+    def get_constraint(self, rtt_flow):
+        constHead.PROJ_QOS_SCHEMA.validate(rtt_flow)
+        targetval = rtt_flow[constHead.TARGET_RTT]
+        self.thru_predictor.gen_fit()
+        def constraint(x):
+            return targetval - self.thru_predictor.poly(x)
+        return constraint
