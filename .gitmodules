@@ -1,6 +1,3 @@
 [submodule "stream-replay"]
 	path = stream-replay
 	url = https://github.com/lasso-sustech/stream-replay.git
-[submodule "stream-replay-rx"]
-	path = stream-replay-rx
-	url = https://github.com/QianrenLi/stream-replay-rx.git
