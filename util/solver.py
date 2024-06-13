@@ -49,7 +49,7 @@ class channelBalanceSolver:
         self.inc_direction = [-1, 1]
         self.channel_rtts = [0, 0]
         self.channel_probabilities = [0 , 0]
-        self.epsilon_rtt = 2 # 10%
+        self.epsilon_rtt = 0.5 # 10%
         self.epsilon_prob_upper = 0.6 # probability that packet send all the packet
         self.epsilon_prob_lower = 0.01  # probability that packet do not send all the packet
         self.target_rtt         = 16
