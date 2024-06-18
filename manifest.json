@@ -5,7 +5,6 @@
         "data": "stream-replay/data/*",
         "src": "stream-replay/src/*",
         "udp_rx" : "stream-replay/udp_rx.py",
-        "replay_rx": "stream-replay-rx/*",
         "tool":"tools/*",
         "util": "util/*"
     },
@@ -17,7 +16,7 @@
                 "port": 0
             },
             "commands": [
-                "(cd stream-replay-rx; ./target/release/stream-replay-rx $port $duration)"
+                "(cd stream-replay; ./target/release/stream-replay-rx $port $duration)"
             ],
             "outputs": {
                 "file_thru": {
@@ -35,7 +34,7 @@
                 "tos": 100
             },
             "commands": [
-                "(cd stream-replay-rx; ./target/release/stream-replay-rx $port $duration calc-rtt)"
+                "(cd stream-replay; ./target/release/stream-replay-rx $port $duration calc-rtt)"
             ],
             "outputs": {
                 "file_thru": {
@@ -55,7 +54,7 @@
             "description": "Cargo build stream-replay.",
             "parameters":{},
             "commands": [
-                "(cd stream-replay-rx; cargo build --release)"
+                "(cd stream-replay; cargo build --release)"
             ]
         },
         "init_stream": {

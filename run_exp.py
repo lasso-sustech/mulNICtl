@@ -125,7 +125,12 @@ def exp_2024_5_27():
     sys.path.append('./expSrc/2024-5-27/experiment1')
     ## run exp
     import exp
-
+    
+def lo_transmission():
+    import sys
+    sys.path.append('./expSrc/lo/transmission')
+    ## run exp
+    import exp
 # exp_2024_5_14()
 # exp_2024_5_17()
 # exp_2024_5_20()
@@ -133,4 +138,4 @@ def exp_2024_5_27():
 # exp_2024_5_21_3()
 # exp_2024_5_23()
 # exp_2024_5_26()
-exp_2024_5_27()
+lo_transmission()
