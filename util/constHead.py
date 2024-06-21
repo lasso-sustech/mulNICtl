@@ -88,6 +88,10 @@ THRU_CONTROL_SCHEMA = Schema({
     'name'     : str,
 }, ignore_extra_keys=True)
 
+throttle_control_schema = Schema({str: Use(str_to_float_or_int)})
+
+tx_part_control_schema = Schema({str: [Use(str_to_float_or_int), Use(str_to_float_or_int)]})
+
 GB_CONTROL_SCHEMA = Schema({
     FLOW_DIR: Or(FLOW_TRANSFER_TO_CHANNEL0, FLOW_TRANSFER_TO_CHANNEL1, FLOW_STOP),
 })

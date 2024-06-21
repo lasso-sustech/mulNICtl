@@ -131,11 +131,5 @@ def lo_transmission():
     sys.path.append('./expSrc/lo/transmission')
     ## run exp
     import exp
-# exp_2024_5_14()
-# exp_2024_5_17()
-# exp_2024_5_20()
-# exp_2024_5_21()
-# exp_2024_5_21_3()
-# exp_2024_5_23()
-# exp_2024_5_26()
+
 lo_transmission()
