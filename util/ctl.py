@@ -7,11 +7,36 @@ from util.trans_graph import LINK_NAME_TO_TX_NAME, LINK_NAME_TO_RX_NAME, LINK_NA
 from util.solver import dataStruct
 from util.stream import stream, create_command
 import util.constHead as constHead
+from util.api.ipc import ipc_control
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
 sys.path.append(parent)
 from tap import Connector
 from typing import List
+
+## threading component
+import queue
+import threading
+class CtlManager:
+    def __init__(self) -> None:
+        self.duration = 10
+        self.info_queue = queue.Queue()
+        pass
+    
+    def _communication_thread(self, topo:Graph):
+        create_tx_manifest(topo)
+        time.sleep(1)
+        conn        = start_transmission(graph = topo, DURATION = self.duration)
+        thrus       = read_thu( conn )
+        self.info_queue.put(thrus)
+        
+    def exp_thread(self, topo:Graph, thread_handles:List[threading.Thread] = []):
+        threads = []
+        threads.append(threading.Thread(target=self._communication_thread, args=(topo,)))
+        for th in thread_handles:
+            threads.append(th)
+        for th in threads:
+            th.start()
 
 ## ip setup component
 def _ip_extract_all(graph: Graph):
@@ -84,10 +109,10 @@ def validate_ip_addr(graph:Graph):
             sender_ips = [ v for k, v in graph.info_graph[sender].items() if k.endswith('_ip_addr')]
             idx = 0
             for stream_name, _stream in streams.items():
-                for ip_addr in _stream.tx_ipaddrs:
+                for ip_addr in _stream.tx_ipaddrs():
                     if ip_addr not in sender_ips:
                         print(f"Error: {sender} do not have ip address {ip_addr}")
-                        
+                  
 def _add_ipc_port(graph):
     """
     Add ipc port (remote and local) to graph
@@ -101,6 +126,19 @@ def _add_ipc_port(graph):
             )
             port += 1
     return graph
+
+def get_ipc_sockets(graph:Graph):
+    ipc_handles = {}
+    for device_name, links in graph.graph.items():
+        for link_name, streams in links.items():
+            if streams == {}:
+                continue
+            ip_addr = graph.info_graph[device_name][LINK_NAME_TO_PROT_NAME(link_name) + "_ip_addr"]
+            local_port = graph.info_graph[device_name][link_name]["local_port"]
+            ipc_port = graph.info_graph[device_name][link_name]["ipc_port"]
+            print(f"device {device_name} with ip {ip_addr} and ipc port {ipc_port}")
+            ipc_handles.update({device_name: ipc_control(ip_addr, ipc_port, local_port)})
+    return ipc_handles
 
 def config_route(graph:Graph, password:str):
     conn = Connector()
@@ -282,6 +320,7 @@ def create_tx_manifest(graph: Graph):
                 else:
                     _clear = False
                 cmd = create_command(_stream, f'../stream-replay/data/{link_name}.json', clear=_clear)
+                # print(f"create manifest for {sender} with cmd {cmd}")
                 conn.batch(sender, 'abuse_manifest', {'cmd': cmd}).wait(0.1)
                 idx += 1
     conn.executor.wait(0.1).apply()
