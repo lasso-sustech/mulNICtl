@@ -16,7 +16,7 @@ YELLOW_LIGHT    = 2
 
 ################################
 CHANNEL_RTTS    = 'channel_rtts'
-THRU            = 'file_thru'
+THRU            = 'throughput'
 TX_PARTS        = 'tx_parts'
 RTT             = 'rtt'
 TARGET_RTT      = 'target_rtt'
@@ -39,12 +39,12 @@ def str_to_float_or_int(value):
 
 PROJ_QOS_SCHEMA = Schema(
     {
-        "file_thru": Use(str_to_float_or_int),
+        "throughput": Use(str_to_float_or_int),
         "rtt": Or(float, int),
         "target_rtt": Or(float, int),
         "tx_parts": TX_PARTS_SCHEMA,
-        "channels": [Or(CHANNEL0, CHANNEL1)],
-        "channel_probabilities": [Or(float, int)],
+        Optional("channels"): [Or(CHANNEL0, CHANNEL1)],
+        Optional("channel_probabilities"): [Or(float, int)],
         Optional("channel_rtts"): CHANNEL_RTT_SCHEMA,
         "name": str,
     },
@@ -52,7 +52,7 @@ PROJ_QOS_SCHEMA = Schema(
 )
 FILE_QOS_SCHEMA = Schema(
     {
-        "file_thru": Use(str_to_float_or_int),
+        "throughput": Use(str_to_float_or_int),
         'throttle' : Use(str_to_float_or_int),
         "name": str,
         "channels": [Or(CHANNEL0, CHANNEL1)],
@@ -102,7 +102,6 @@ traffic_config_schema = Schema(Or({
     'port'      : int,
     'file_type' : Or('file', 'proj'),
     'links'     : [[str]],
-    'name'      : str,
     'tx_parts'  : TX_PARTS_SCHEMA,
     Optional('tos'): int,
 }, None))

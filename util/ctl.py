@@ -38,6 +38,51 @@ class CtlManager:
         for th in threads:
             th.start()
 
+class ipcManager:
+    def __init__(self, graph:Graph):
+        ipc_handles = {}
+        stream_name_device_map = {}
+        for device_name, links in graph.graph.items():
+            for link_name, streams in links.items():
+                if streams == {}:
+                    continue
+                else:
+                    for stream_name, _stream in streams.items():
+                        print(f"stream {stream_name} is associated with device {device_name}")
+                        stream_name_device_map.update({stream_name: device_name})
+                ip_addr = graph.info_graph[device_name][LINK_NAME_TO_PROT_NAME(link_name) + "_ip_addr"]
+                local_port = graph.info_graph[device_name][link_name]["local_port"]
+                ipc_port = graph.info_graph[device_name][link_name]["ipc_port"]
+                print(f"device {device_name} with ip {ip_addr} and ipc port {ipc_port}")
+                ipc_handles.update({device_name: ipc_control(ip_addr, ipc_port, local_port)})
+        self.ipc_handles = ipc_handles
+        self.stream_name_device_map = stream_name_device_map
+
+    def ipc_qos_collection(self):
+        ipc_res = []
+        for key, sock in self.ipc_handles.items():
+            try:
+                print(f"Getting statistics from {key}")
+                res = sock.statistics()
+                json_res = json.loads(res)
+                json_res = json_res["cmd"]["Statistics"]
+                for k, v in json_res.items():
+                    ipc_res.append({"name": k} | v)
+            except Exception as e:
+                print(e)
+        return ipc_res
+
+    def ipc_tx_part_ctrl(self, controls:list):
+        for control in controls:
+            name = control["name"]
+            dev_name = self.stream_name_device_map[name]
+            sock = self.ipc_handles[dev_name]
+            try:
+                sock.tx_part({name: control["tx_parts"]})
+            except Exception as e:
+                print(e)
+
+
 ## ip setup component
 def _ip_extract_all(graph: Graph):
     """
@@ -126,19 +171,6 @@ def _add_ipc_port(graph):
             )
             port += 1
     return graph
-
-def get_ipc_sockets(graph:Graph):
-    ipc_handles = {}
-    for device_name, links in graph.graph.items():
-        for link_name, streams in links.items():
-            if streams == {}:
-                continue
-            ip_addr = graph.info_graph[device_name][LINK_NAME_TO_PROT_NAME(link_name) + "_ip_addr"]
-            local_port = graph.info_graph[device_name][link_name]["local_port"]
-            ipc_port = graph.info_graph[device_name][link_name]["ipc_port"]
-            print(f"device {device_name} with ip {ip_addr} and ipc port {ipc_port}")
-            ipc_handles.update({device_name: ipc_control(ip_addr, ipc_port, local_port)})
-    return ipc_handles
 
 def config_route(graph:Graph, password:str):
     conn = Connector()
@@ -345,7 +377,19 @@ def read_thu(conn:Connector):
             if idx >= maximum_retry:
                 break
             continue
-        
+
+
+def graph_qos_collections(graph:Graph):
+    qoses = {}
+    for device_name, links in graph.graph.items():
+        for link_name, streams in links.items():
+            for stream_name, stream_handle in streams.items():
+                assert isinstance(stream_handle, stream)
+                qos = {}
+                qos.update(stream_handle.to_dict())
+                qoses.update({stream_name: qos})
+    return qoses
+ 
 def clean_up_receiver(graph: Graph, password:str):
     conn = Connector()
     for device_name, links in graph.graph.items():

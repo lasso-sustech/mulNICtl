@@ -19,7 +19,7 @@
                 "(cd stream-replay; ./target/release/stream-replay-rx $port $duration)"
             ],
             "outputs": {
-                "file_thru": {
+                "throughput": {
                     "cmd": "echo $output_0",
                     "format": "Average Throughput: (\\d+\\.\\d+) Mbps"
                 } 
@@ -37,7 +37,7 @@
                 "(cd stream-replay; ./target/release/stream-replay-rx $port $duration calc-rtt)"
             ],
             "outputs": {
-                "file_thru": {
+                "throughput": {
                     "cmd": "echo $output_0",
                     "format": "Average Throughput: (\\d+\\.\\d+) Mbps"
                 } 
