@@ -22,6 +22,7 @@ LINK_NAME_TO_TX_NAME = lambda link_name : link_name.split('_')[-2]
 LINK_NAME_TO_RX_NAME = lambda link_name : link_name.split('_')[-1]
 LINK_NAME_TO_PROT_NAME = lambda link_name : '_'.join(link_name.split('_')[1:-2])
 LINK_NAME_TO_TX_IF_NAME = lambda link_name : link_name.split('_')[0]
+LINK_NAME_TO_RX_IF_NAME = lambda link_name : link_name.split('_')[1]
 
 class Graph:
     """
@@ -162,7 +163,7 @@ class Graph:
         self.info_graph[device_name].update({protocol+'_ip_addr': ip_addr})
         pass
     
-    def link_to_tx_ip(self, link_name:str) -> str:
+    def get_link_ips(self, link_name:str) -> str:
         """
         Get the ip address of tx device over the link
 
@@ -172,7 +173,7 @@ class Graph:
         Returns:
             str: ip address of tx device
         """
-        return self.info_graph[LINK_NAME_TO_TX_NAME(link_name)][LINK_NAME_TO_TX_IF_NAME(link_name)+'_ip_addr']
+        return [self.info_graph[LINK_NAME_TO_TX_NAME(link_name)][LINK_NAME_TO_TX_IF_NAME(link_name)+'_ip_addr'], self.info_graph[LINK_NAME_TO_RX_NAME(link_name)][LINK_NAME_TO_RX_IF_NAME(link_name)+'_ip_addr']]
 
     def show(self) -> None:
         """

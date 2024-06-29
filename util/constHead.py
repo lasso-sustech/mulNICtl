@@ -101,7 +101,7 @@ traffic_config_schema = Schema(Or({
     'link'      : str,
     'port'      : int,
     'file_type' : Or('file', 'proj'),
-    'ip_addrs'  : [str],
+    'links'     : [[str]],
     'name'      : str,
     'tx_parts'  : TX_PARTS_SCHEMA,
     Optional('tos'): int,

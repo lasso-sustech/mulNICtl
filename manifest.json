@@ -137,7 +137,7 @@
                 "ipc-port": 11112
             },
             "commands": [
-                "(cd stream-replay; ./target/release/stream-replay data/$manifest_name $target_addr $duration --ipc-port $ipc-port)"
+                "(cd stream-replay; ./target/release/stream-replay data/$manifest_name $duration --ipc-port $ipc-port)"
             ]
         },
         "run-replay-client-Windows": {

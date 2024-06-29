@@ -37,7 +37,7 @@ class stream:
         self.calc_rtt = True
         self.no_logging = True
         self.links = [["127.0.0.1", "127.0.0.1"]]
-        self.tx_parts = [0]
+        self.tx_parts = [0.0] #TODO: Type warning
         ## None Manifest Variables
         self.target_rtt = 16
         self.channels   = []
@@ -49,7 +49,7 @@ class stream:
     def to_dict(self):
         return self.__dict__
 
-    def get_tx_ipaddrs(self):
+    def tx_ipaddrs(self):
         return [i[0] for i in self.links]
     
     def validate(self):
@@ -58,7 +58,7 @@ class stream:
         with open('temp/channel_table.json', 'r') as f:
             channel_table   = json.load(f)
             
-        tx_ipaddrs = self.get_tx_ipaddrs()
+        tx_ipaddrs = self.tx_ipaddrs()
         if len(set(tx_ipaddrs)) > 1:
             for device, ips in ip_table.items():
                 for if_name, ip in ips.items():
@@ -80,7 +80,7 @@ class stream:
         with open(file_addr, 'r') as f:
             content = json.load(f)
         content['streams'].append(self.__dict__)
-        content['tx_ipaddrs'] = list(set(content['tx_ipaddrs'] + self.get_tx_ipaddrs()))
+        content['tx_ipaddrs'] = list(set(content['tx_ipaddrs'] + self.tx_ipaddrs()))
         with open(file_addr, 'w') as f:
             json.dump(content, f, indent=2)
             
@@ -100,23 +100,31 @@ def create_parse(parser: argparse.ArgumentParser):
     for i in temp.__dict__:
         if i in ['target_rtt', 'channels', 'name']:
             continue
-        if type(temp.__getattribute__(i)) == list:
-            parser.add_argument('--'+i, type=type(temp.__getattribute__(i)[0]), nargs='+', default=temp.__dict__[i])
+        attr = temp.__getattribute__(i)
+        if isinstance(attr, list) and all(isinstance(item, list) for item in attr):
+            parser.add_argument('--' + i, type=type(attr[0][0]), nargs='+', action = 'append')
+        elif isinstance(attr, list):
+            parser.add_argument('--' + i, type=type(attr[0]), nargs='+', default=attr)
         else:
-            parser.add_argument('--'+i, type=type(temp.__getattribute__(i)), default=temp.__dict__[i])
-    return parser 
+            parser.add_argument('--' + i, type=type(attr), default=attr)
+    return parser
 
 def create_command(stream: stream, file_addr: str, clear: bool = False):
     command = f'cd util; python3 stream.py --file {file_addr}'
     for i in stream.__dict__:
         if i in ['priority', 'target_rtt', 'channels', 'name']:
             continue
-        if type(stream.__getattribute__(i)) == list:
-            command += ' --'+i
-            for j in stream.__getattribute__(i):
-               command += ' '+str(j)
+        attr = stream.__getattribute__(i)
+        if isinstance(attr, list):
+            if all(isinstance(item, list) for item in attr):
+                for sublist in attr:
+                    command += ' --' + i
+                    command += ' ' + ' '.join(map(str, sublist))
+            else:
+                command += ' --' + i
+                command += ' ' + ' '.join(map(str, attr))
         else:
-            command += ' --'+i+' '+str(stream.__getattribute__(i))
+            command += ' --' + i + ' ' + str(attr)
     if clear:
         command += ' --clear'
     return command
