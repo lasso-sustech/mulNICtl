@@ -10,9 +10,9 @@ FLOW_STOP                   = 'stop'
 
 FLOW_DIR = 'flow_dir'
 
-RED_LIGHT       = 0
+RED_LIGHT       = 2
 GREEN_LIGHT     = 1
-YELLOW_LIGHT    = 2
+YELLOW_LIGHT    = 0
 
 ################################
 CHANNEL_RTTS    = 'channel_rtts'

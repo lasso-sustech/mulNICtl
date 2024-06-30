@@ -45,7 +45,7 @@ class solver:
     def __init__(self, base_info) -> None:
         self.base_info = base_info # Consists of target_rtt, mcs, etc.
         
-    def _control(self, qos: List[dict]):
+    def _control(self, qos: List[dict]): #TODO: C implementation
         controls = []
         return controls
 
@@ -61,6 +61,7 @@ class solver:
 class balanceSolver(solver):
     def __init__(self, base_info) -> None:
         super().__init__(base_info)
+    
     class channelBalanceSolver:
         inc_direction = [-1, 1]
         def __init__(self):
@@ -79,22 +80,20 @@ class balanceSolver(solver):
         def solve_by_rtt_balance(self, qos):
             channel_rtts = qos["channel_rtts"]
             tx_parts = qos["tx_parts"]
-            assert(tx_parts[0] == tx_parts[1])
-            if abs(channel_rtts[0] - channel_rtts[1]) < self.epsilon_rtt:
-                constHead.TX_PARTS_SCHEMA.validate(tx_parts)
-            else:
+            assert(tx_parts[0] == tx_parts[1], "In rtt balance mode, TX parts should be the same")
+            if abs(channel_rtts[0] - channel_rtts[1]) > self.epsilon_rtt:
                 tx_parts[0] += self.min_step if channel_rtts[0] > channel_rtts[1] else -self.min_step
                 tx_parts[0] = max(0, min(1, tx_parts[0]))
                 tx_parts[0] = round(tx_parts[0], 2)
                 tx_parts[1] = tx_parts[0]
-                constHead.TX_PARTS_SCHEMA.validate(tx_parts)
+            constHead.TX_PARTS_SCHEMA.validate(tx_parts)
             return tx_parts
 
         def redundency_balance(self, qos):
             channel_probabilities = qos["channel_probabilities"]
             tx_parts = qos["tx_parts"]
             for idx, pro in enumerate(channel_probabilities):
-                assert 0 <= pro <= 1
+                assert 0 <= pro <= 1, f"Invalid probability: {pro}, should be in [0, 1]"
                 if pro > self.epsilon_prob_upper:
                     tx_parts[idx] += self.min_step * self.inc_direction[idx]
                 elif pro < self.epsilon_prob_lower:
@@ -112,6 +111,37 @@ class balanceSolver(solver):
             })
         return controls
 
+class globalSolver(solver):
+    def __init__(self, base_info) -> None:
+        super().__init__(base_info)
+        self.yellow_fraction = 0.7
+        
+    def state(self, qoses):
+        def light(rtt, target_rtt, yellow_fraction):
+            if rtt < target_rtt * yellow_fraction:
+                return constHead.GREEN_LIGHT
+            if rtt < target_rtt:
+                return constHead.YELLOW_LIGHT
+            return constHead.RED_LIGHT
+        
+        channel_lights = {}
+        qoses = get_proj_qos(qoses)
+        for qos in qoses:
+            constHead.PROJ_QOS_SCHEMA.validate(qos)
+            for channel, channel_rtt in zip(channel_rtt, qos['channels']):
+                ch_light = light(channel_rtt, qos['target_rtt'], self.yellow_fraction)
+                if channel_lights.get(channel) is None:
+                    channel_lights[channel] = ch_light
+                else:
+                    channel_lights[channel] = max(channel_lights[channel], ch_light)
+        return channel_lights
+    
+    def _control(self, qoses):
+        channel_lights = self.state(qoses)
+        # Decentralized control
+        pass
+
+            
 class channelSwitchSolver:
     def __init__(self, target_rtt = 16, switch_state = constHead.CHANNEL0) -> None:
         self.rtt_predict = rttPredictor()
@@ -398,45 +428,6 @@ class thruSolver:
         control[constHead.THRU_CONTROL] = throttle
         constHead.THRU_CONTROL_SCHEMA.validate(control)
         return control
-            
-class gb_state:
-    def __init__(self) -> None:
-        self.state = [None, None]
-
-    def update_gb_state(self, qoses):
-        channel_lights = [None, None]
-        qoses = get_proj_qos(qoses)
-        for qos in qoses:
-            constHead.PROJ_QOS_SCHEMA.validate(qos)
-
-            if qos[constHead.CHANNEL_RTTS][0] > qos['target_rtt']:
-                channel_lights[0] = constHead.RED_LIGHT
-            if qos[constHead.CHANNEL_RTTS][1] > qos['target_rtt']:
-                channel_lights[1] = constHead.RED_LIGHT
-
-        if channel_lights[0] is None:
-            channel_lights[0] = constHead.GREEN_LIGHT
-        if channel_lights[1] is None:
-            channel_lights[1] = constHead.GREEN_LIGHT
-        self.state = channel_lights
-        return self
-
-    def get_gb_state(self):
-        return self.state
-
-    def flow_flag(self):
-        if self.state[0] == constHead.RED_LIGHT and self.state[1] == constHead.GREEN_LIGHT:
-            return constHead.FLOW_TRANSFER_TO_CHANNEL1
-        if self.state[1] == constHead.RED_LIGHT and self.state[0] == constHead.GREEN_LIGHT:
-            return constHead.FLOW_TRANSFER_TO_CHANNEL0
-        return constHead.FLOW_STOP
-
-    def policy(self):
-        actions = {
-            constHead.FLOW_DIR: self.flow_flag()
-        }
-        constHead.GB_CONTROL_SCHEMA.validate(actions)
-        return actions
 
 class singleDirFlowTransSolver:
     def __init__(self, direction, islog = False) -> None:
