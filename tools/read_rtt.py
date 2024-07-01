@@ -51,7 +51,7 @@ def read_rtt(file_addr):
                     rtt[2].append(0)
                 seq = num - 1
                 rtt[0][seq] = max(float(line[1]), rtt[0][seq])
-                if float(line[2]) == 10:
+                if float(line[2]) == 0:
                     rtt[1][seq] = float(line[1])
                 else:
                     rtt[2][seq] = float(line[1])
@@ -65,7 +65,6 @@ def read_rtt(file_addr):
         rtt[i] = np.array(rtt[i])
 
     idxes = mean_of_quantile(rtt[0])
-    print(f'idxes: {idxes}')
     average_rtt[0] = np.mean(get_rtt_from_idexes(rtt[0], idxes))
     average_rtt[1] = np.mean(get_rtt_from_idexes(rtt[1], idxes))
     average_rtt[2] = np.mean(get_rtt_from_idexes(rtt[2], idxes))

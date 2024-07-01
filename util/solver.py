@@ -80,6 +80,7 @@ class balanceSolver(solver):
         def solve_by_rtt_balance(self, qos):
             channel_rtts = qos["channel_rtts"]
             tx_parts = qos["tx_parts"]
+            assert(len(tx_parts) == 2, "TX parts should have 2 parts")
             assert(tx_parts[0] == tx_parts[1], "In rtt balance mode, TX parts should be the same")
             if abs(channel_rtts[0] - channel_rtts[1]) > self.epsilon_rtt:
                 tx_parts[0] += self.min_step if channel_rtts[0] > channel_rtts[1] else -self.min_step
@@ -102,12 +103,12 @@ class balanceSolver(solver):
             constHead.TX_PARTS_SCHEMA.validate(tx_parts)
             return tx_parts
 
-    def _control(self, qos):
+    def _control(self, qoses):
         controls = []
-        for q in qos:
+        for qos in qoses:
             controls.append({
-                'name': q['name'],
-                'tx_parts': self.channelBalanceSolver().control(q),
+                'name': qos['name'],
+                'tx_parts': self.channelBalanceSolver().control(qos),
             })
         return controls
 
@@ -138,9 +139,7 @@ class globalSolver(solver):
     
     def _control(self, qoses):
         channel_lights = self.state(qoses)
-        # Decentralized control
         pass
-
             
 class channelSwitchSolver:
     def __init__(self, target_rtt = 16, switch_state = constHead.CHANNEL0) -> None:
@@ -253,7 +252,7 @@ class channelS2DMCSSolver:
         for tx_part in tx_parts:
             res_tx_parts.append( round(tx_part, 2) )
         return res_tx_parts
-    
+
 class channelS2DAppSolver:
     @staticmethod
     def get_tx_parts(qoses):

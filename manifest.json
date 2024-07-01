@@ -2,11 +2,15 @@
     "name": "",
     "codebase": {
         "manifest": "manifest.json",
+        "install": "install.py",
+        "requirements": "requirements.txt",
         "data": "stream-replay/data/*",
         "src": "stream-replay/src/*",
-        "udp_rx" : "stream-replay/udp_rx.py",
+        "src/statistic": "stream-replay/src/statistic/*",
+        "toml" : "stream-replay/Cargo.toml",
         "tool":"tools/*",
-        "util": "util/*"
+        "util": "util/*",
+        "util/api": "util/api/*"
     },
     "functions": {
         "outputs_throughput": {
@@ -40,7 +44,11 @@
                 "throughput": {
                     "cmd": "echo $output_0",
                     "format": "Average Throughput: (\\d+\\.\\d+) Mbps"
-                } 
+                },
+                "packet_loss": {
+                    "cmd": "echo $output_0",
+                    "format": "Packet loss rate: (\\d+\\.\\d+)"
+                }
             }
         },
         "warm_up_tx":{

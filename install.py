@@ -12,7 +12,6 @@ def create_folders():
 def execute_commands():
     # Execute commands
     subprocess.run(["cargo", "build", "--release"], cwd="stream-replay")
-    subprocess.run(["cargo", "build", "--release"], cwd="stream-replay-rx")
     
 def pip_install():
     # if pip is not installed, install it

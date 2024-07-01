@@ -16,10 +16,12 @@ def get_ip():
     except Exception as e:
         ## android might not supported by psutil
         res = os.popen('ifconfig').read()
-        keyword = 'wlan0'
-        res = re.search(r'wlan0:[^\n]*\n\s*inet\s+(\d{1,3}(?:\.\d{1,3}){3})', res)
-        if res:
-            info.append((keyword, res.group(1)))
+        for keyword in ['wlan0', 'p2p0', 'lo']:
+            # Updated regular expression pattern to handle variations in spacing and formatting
+            re_pattern = re.compile(rf'{keyword}.*?\n\s*inet\s+(\d{{1,3}}(?:\.\d{{1,3}}){{3}})', re.S)
+            vres = re.search(re_pattern, res)
+            if vres:
+                info.append((keyword, vres.group(1)))
     return info
 
 print(get_ip())
