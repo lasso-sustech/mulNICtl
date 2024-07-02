@@ -51,14 +51,7 @@
                 }
             }
         },
-        "warm_up_tx":{
-            "description": "Cargo build stream-replay.",
-            "parameters":{},
-            "commands": [
-                "(cd stream-replay; cargo build --release)"
-            ]
-        },
-        "warm_up_rx":{
+        "warm_up":{
             "description": "Cargo build stream-replay.",
             "parameters":{},
             "commands": [

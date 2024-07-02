@@ -66,7 +66,7 @@ class balanceSolver(solver):
         inc_direction = [-1, 1]
         def __init__(self):
             self.min_step = 0.05
-            self.epsilon_rtt = 0.5 # 10%
+            self.epsilon_rtt = 0.001 # 10%
             self.epsilon_prob_upper = 0.6 # probability that packet send all the packet
             self.epsilon_prob_lower = 0.01  # probability that packet do not send all the packet
             self.redundency_mode = False
@@ -82,6 +82,8 @@ class balanceSolver(solver):
             tx_parts = qos["tx_parts"]
             assert(len(tx_parts) == 2, "TX parts should have 2 parts")
             assert(tx_parts[0] == tx_parts[1], "In rtt balance mode, TX parts should be the same")
+            if any(rtt == 0 for rtt in channel_rtts):
+                return tx_parts
             if abs(channel_rtts[0] - channel_rtts[1]) > self.epsilon_rtt:
                 tx_parts[0] += self.min_step if channel_rtts[0] > channel_rtts[1] else -self.min_step
                 tx_parts[0] = max(0, min(1, tx_parts[0]))
@@ -119,6 +121,8 @@ class globalSolver(solver):
         
     def state(self, qoses):
         def light(rtt, target_rtt, yellow_fraction):
+            target_rtt = float(target_rtt)
+            rtt = float(rtt) * 1000
             if rtt < target_rtt * yellow_fraction:
                 return constHead.GREEN_LIGHT
             if rtt < target_rtt:
@@ -129,7 +133,7 @@ class globalSolver(solver):
         qoses = get_proj_qos(qoses)
         for qos in qoses:
             constHead.PROJ_QOS_SCHEMA.validate(qos)
-            for channel, channel_rtt in zip(channel_rtt, qos['channels']):
+            for channel_rtt, channel in zip(qos[constHead.CHANNEL_RTTS], qos[constHead.CHANNEL]):
                 ch_light = light(channel_rtt, qos['target_rtt'], self.yellow_fraction)
                 if channel_lights.get(channel) is None:
                     channel_lights[channel] = ch_light
@@ -139,7 +143,11 @@ class globalSolver(solver):
     
     def _control(self, qoses):
         channel_lights = self.state(qoses)
-        pass
+        controls = []
+        if all(light == constHead.GREEN_LIGHT for light in channel_lights.values()):
+            _controls = balanceSolver(self.base_info)._control(qoses)
+            controls.extend(_controls)
+        return controls
             
 class channelSwitchSolver:
     def __init__(self, target_rtt = 16, switch_state = constHead.CHANNEL0) -> None:

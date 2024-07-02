@@ -131,12 +131,20 @@ def lo_transmission():
     sys.path.append('./expSrc/lo/transmission')
     ## run exp
     import exp
-lo_transmission()
+# lo_transmission()
 
-# def exp_2024_7_1():
-#     import sys
-#     sys.path.append('./expSrc/2024-7-1/experiment1')
-#     ## run exp
-#     import exp
+def exp_2024_7_1():
+    import sys
+    sys.path.append('./expSrc/2024-7-1/experiment1')
+    ## run exp
+    import exp
 
 # exp_2024_7_1()
+
+def exp_2024_7_1_2():
+    import sys
+    sys.path.append('./expSrc/2024-7-1/experiment2')
+    ## run exp
+    import exp
+
+exp_2024_7_1_2()
