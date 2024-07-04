@@ -316,8 +316,9 @@ def read_rtt(graph) -> List[dataStruct]:
                 if stream_handle.calc_rtt == False:
                     continue
                 port_num, tos = stream_name.split("@")
-                conn.batch(sender, "read_rtt", {"port": port_num, "tos": tos})
-    results = conn.executor.wait(0.5).fetch().apply()
+                print(sender, "read_rtt", {"port": port_num, "tos": tos})
+                conn.batch(sender, "read_rtt", {"port": port_num, "tos": tos})         
+    results = conn.executor.wait(1).fetch().apply()
     idx = 0
     for device_name, links in graph.graph.items():
         for link_name, streams in links.items():
@@ -352,7 +353,7 @@ def create_tx_manifest(graph: Graph):
                 else:
                     _clear = False
                 cmd = create_command(_stream, f'../stream-replay/data/{link_name}.json', clear=_clear)
-                # print(f"create manifest for {sender} with cmd {cmd}")
+                print(f"create manifest for {sender} with cmd {cmd}")
                 conn.batch(sender, 'abuse_manifest', {'cmd': cmd}).wait(0.1)
                 idx += 1
     conn.executor.wait(0.1).apply()

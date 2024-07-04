@@ -147,4 +147,20 @@ def exp_2024_7_1_2():
     ## run exp
     import exp
 
-exp_2024_7_1_2()
+# exp_2024_7_1_2()
+
+def exp_2024_7_2():
+    import sys
+    sys.path.append('./expSrc/2024-7-2/experiment1')
+    ## run exp
+    import exp
+
+exp_2024_7_2()
+
+def exp_2024_7_3():
+    import sys
+    sys.path.append('./expSrc/2024-7-3/experiment1')
+    ## run exp
+    import exp
+    
+# exp_2024_7_3()

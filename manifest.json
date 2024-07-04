@@ -2,6 +2,7 @@
     "name": "",
     "codebase": {
         "manifest": "manifest.json",
+        "tap": "tap.py",
         "install": "install.py",
         "requirements": "requirements.txt",
         "data": "stream-replay/data/*",

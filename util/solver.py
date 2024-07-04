@@ -66,7 +66,7 @@ class balanceSolver(solver):
         inc_direction = [-1, 1]
         def __init__(self):
             self.min_step = 0.05
-            self.epsilon_rtt = 0.001 # 10%
+            self.epsilon_rtt = 0.002 # 10%
             self.epsilon_prob_upper = 0.6 # probability that packet send all the packet
             self.epsilon_prob_lower = 0.01  # probability that packet do not send all the packet
             self.redundency_mode = False

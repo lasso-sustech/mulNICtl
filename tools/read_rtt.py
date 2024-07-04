@@ -60,14 +60,14 @@ def read_rtt(file_addr):
                 
     ## average rtt
     average_rtt = [0,0,0]    
-    rtt = filter_rtt(rtt)
+    # rtt = filter_rtt(rtt)
     for i in range(3):
         rtt[i] = np.array(rtt[i])
 
-    idxes = mean_of_quantile(rtt[0])
-    average_rtt[0] = np.mean(get_rtt_from_idexes(rtt[0], idxes))
-    average_rtt[1] = np.mean(get_rtt_from_idexes(rtt[1], idxes))
-    average_rtt[2] = np.mean(get_rtt_from_idexes(rtt[2], idxes))
+    # idxes = mean_of_quantile(rtt[0])
+    average_rtt[0] = np.mean(rtt[0])
+    average_rtt[1] = np.mean(rtt[1])
+    average_rtt[2] = np.mean(rtt[2])
     
     ## probability of non-zero rtt
     probability = [0,0]
@@ -77,6 +77,7 @@ def read_rtt(file_addr):
     ## print
     print(f'Received packets fraction: {received/num}')
     print('Average RTT: %.9f %.9f %.9f' % (average_rtt[0], average_rtt[1], average_rtt[2]))
+    # print('data number:  %.9f %.9f'% (len(rtt[1]), len(rtt[2])))
     print(f'Probability of non-zero RTT: {probability}')
     pass
 
