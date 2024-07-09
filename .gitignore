@@ -8,3 +8,7 @@ __pycache__
 /expSrc
 /dpScript
 .vscode
+
+# Added by cargo
+
+/target

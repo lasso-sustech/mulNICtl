@@ -43,7 +43,8 @@ links = topo.get_links()
 temp = stream.stream().read_from_manifest('./config/stream/proj.json')
 temp.npy_file = 'proj_12.5MB.npy'
 temp.calc_rtt = True
-temp.tx_ipaddrs = ['192.168.3.61', '192.168.3.18']; temp.tx_parts = [0.25, 0.25]; temp.port = 6203
+temp.tx_ipaddrs = ['192.168.3.61', '192.168.3.18']; temp.tx_parts = [0.25, 0.25]
+temp.port = 6203
 topo.ADD_STREAM(links[0], temp, target_rtt=18)
 
 
