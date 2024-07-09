@@ -8,3 +8,5 @@ __pycache__
 /expSrc
 /dpScript
 .vscode
+/solver/.mypy_cache
+/solver/target
