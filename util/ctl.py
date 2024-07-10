@@ -59,26 +59,23 @@ class ipcManager:
         self.stream_name_device_map = stream_name_device_map
 
     def ipc_qos_collection(self):
-        ipc_res = []
+        ipc_res = {}
         for key, sock in self.ipc_handles.items():
             try:
                 print(f"Getting statistics from {key}")
-                res = sock.statistics()
-                json_res = json.loads(res)
-                json_res = json_res["cmd"]["Statistics"]
-                for k, v in json_res.items():
-                    ipc_res.append({"name": k} | v)
+                json_res = json.loads(sock.statistics())["cmd"]["Statistics"]
+                ipc_res.update(json_res)
             except Exception as e:
                 print(e)
         return ipc_res
 
-    def ipc_tx_part_ctrl(self, controls:list):
-        for control in controls:
-            name = control["name"]
+
+    def ipc_tx_part_ctrl(self, controls:dict):
+        for name, value in controls.items():
             dev_name = self.stream_name_device_map[name]
             sock = self.ipc_handles[dev_name]
             try:
-                sock.tx_part({name: control["tx_parts"]})
+                sock.tx_part({name: value["tx_parts"]})
             except Exception as e:
                 print(e)
 

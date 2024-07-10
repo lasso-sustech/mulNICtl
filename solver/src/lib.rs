@@ -1,119 +1,72 @@
+mod types;
+mod cores;
+
 use std::collections::HashMap;
+use pyo3::{prelude::*, types::PyDict};
 
-use pyo3::prelude::*;
-use pyo3::types::PyDict;
-use qos::Stream;
+use crate::types::{action, qos, state};
+use crate::state::{State, Color};
 use crate::qos::Qos;
+use crate::action::{hash_map_to_py_dict, Action};
+use crate::cores::rtt_balance::RttBalanceSolver;
 
-mod qos;
+trait Solver {
+    fn control(&self, qos: HashMap<String, Qos>, channel_state: &State) -> HashMap<String, Action>;
+}
+
+fn algorithm_selection(glb_state: &State) -> Option<Box<dyn Solver>>{
+    let color_values = glb_state.color.values().cloned().collect::<Vec<Color>>();
+    if color_values.len() == 0 || color_values.len() > 2 {
+        eprintln!("The number of channel is zero or more than 2; Not handle.");
+        return None;
+    }
+    match color_values.as_slice() {
+        [Color::Green]  => None,
+        [Color::Yellow] => None,
+        [Color::Red]    => None,
+
+        [Color::Green, Color::Green]    => Some(Box::new(RttBalanceSolver)),
+        [Color::Yellow, Color::Yellow]  => None,
+        [Color::Red, Color::Red]        => None,
+
+        [Color::Green, Color::Yellow] | [Color::Yellow, Color::Green]   => Some(Box::new(RttBalanceSolver)),
+        [Color::Green, Color::Red]  | [Color::Red, Color::Green]        => Some(Box::new(RttBalanceSolver)),
+        [Color::Yellow, Color::Red] | [Color::Red, Color::Yellow]       => None,
+
+        _ => None,
+    }
+}
 
 #[pyclass]
-struct ChannelBalanceSolver {
-    inc_direction: [i32; 2],
-    min_step: f64,
-    epsilon_rtt: f64,
-    epsilon_prob_upper: f64,
-    epsilon_prob_lower: f64,
-    redundency_mode: bool,
+#[derive(Clone)]
+pub struct Controller {
+    glb_state: State,
 }
 
 #[pymethods]
-impl ChannelBalanceSolver {
+impl Controller {
     #[new]
-    fn new() -> Self {
-        ChannelBalanceSolver {
-            inc_direction: [-1, 1],
-            min_step: 0.05,
-            epsilon_rtt: 0.002,
-            epsilon_prob_upper: 0.6,
-            epsilon_prob_lower: 0.01,
-            redundency_mode: false,
+    pub fn new() -> Controller {
+        Controller {
+            glb_state: State::new(),
         }
     }
 
-    fn control(&mut self, qos: Qos) -> Vec<f64> {
-        if self.redundency_mode {
-            self.redundency_balance(qos)
-        } else {
-            self.solve_by_rtt_balance(qos)
+    #[pyo3(text_signature = "(self, qoss)")]
+    pub fn control(&mut self, qoss: HashMap<String, Qos>) -> Py<PyDict> {
+        self.glb_state.update(qoss.clone());
+
+        let solver = algorithm_selection(&self.glb_state);
+        match solver {
+            Some(solver) => hash_map_to_py_dict(solver.control(qoss, &self.glb_state)),
+            None => hash_map_to_py_dict(HashMap::new()),
         }
-    }
-
-    fn solve_by_rtt_balance(&mut self, qos: Qos) -> Vec<f64> {
-        let mut tx_parts = qos.tx_parts.clone();
-        assert_eq!(tx_parts.len(), 2, "TX parts should have 2 parts");
-        assert_eq!(tx_parts[0], tx_parts[1], "In rtt balance mode, TX parts should be the same");
-
-        if qos.channel_rtts.iter().any(|&rtt| rtt == 0.0) {
-            return tx_parts;
-        }
-
-        if (qos.channel_rtts[0] - qos.channel_rtts[1]).abs() > self.epsilon_rtt {
-            tx_parts[0] += if qos.channel_rtts[0] > qos.channel_rtts[1] { self.min_step } else { -self.min_step };
-            tx_parts[0] = (tx_parts[0].max(0.0).min(1.0) * 100.0).round() / 100.0;
-            tx_parts[1] = tx_parts[0];
-        }
-
-        tx_parts
-    }
-
-    fn redundency_balance(&mut self, qos: Qos) -> Vec<f64> {
-        let mut tx_parts = qos.tx_parts.clone();
-        if let Some(channel_probabilities) = qos.channel_probabilities {
-            for (idx, &pro) in channel_probabilities.iter().enumerate() {
-                assert!((0.0..=1.0).contains(&pro), "Invalid probability: {}, should be in [0, 1]", pro);
-                if pro > self.epsilon_prob_upper {
-                    tx_parts[idx] += self.min_step * self.inc_direction[idx] as f64;
-                } else if pro < self.epsilon_prob_lower {
-                    tx_parts[idx] -= self.min_step * self.inc_direction[idx] as f64;
-                }
-                tx_parts[idx] = (tx_parts[idx].max(0.0).min(1.0) * 100.0).round() / 100.0;
-            }
-        }
-
-        tx_parts
     }
 }
 
-
-type BaseInfo = HashMap<String,Stream>;
-
-#[pyclass]
-struct BalanceSolver {
-    base_info: BaseInfo,
-}
-
-#[pymethods]
-impl BalanceSolver {
-    #[new]
-    fn new( base_info: HashMap<String,Stream>) -> Self {
-        BalanceSolver {
-            base_info
-        }
-    }
-
-    fn base_info(&self) -> HashMap<String,Stream> {
-        self.base_info.clone()
-    }
-
-    fn control(&self, qoses: Vec<Qos>) -> PyResult<Vec<PyObject>> {
-        Python::with_gil(|py| {
-            let results = qoses.into_iter().map(|qos| {
-                let mut solver = ChannelBalanceSolver::new();
-                let tx_parts = solver.control(qos.clone());
-                let dict = PyDict::new(py);
-                dict.set_item("name", qos.name.clone()).unwrap();
-                dict.set_item("tx_parts", tx_parts).unwrap();
-                dict.into()
-            }).collect();
-            Ok(results)
-        })
-    }
-}
 
 #[pymodule]
 fn solver(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_class::<BalanceSolver>()?;
-    m.add_class::<ChannelBalanceSolver>()?;
+    m.add_class::<Controller>()?;
     Ok(())
 }
