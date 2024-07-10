@@ -27,10 +27,17 @@ def pip_install():
         subprocess.run(["pip", "install", package])    
         
 def cargo_install():
-    try:
-        subprocess.run(["cargo", "--version"])
-    except Exception as e:
-        subprocess.run(["curl", "--proto", "=https", "--tlsv1.2", "-sSf", "https://sh.rustup.rs", "|", "sh"])
+    while True:
+        try:
+            subprocess.run(["cargo", "--version"])
+            break
+        except Exception as e:
+            try:
+                subprocess.run("curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh", shell=True)
+                subprocess.run(["source", "$HOME/.cargo/env"])
+                break
+            except Exception as e:
+                subprocess.run(["sudo", "apt", "install", "curl"])
         
 
 def main():
