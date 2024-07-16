@@ -39,7 +39,7 @@ class stream:
         self.links = [["127.0.0.1", "127.0.0.1"]]
         self.tx_parts = [0.0] #TODO: Type warning
         ## None Manifest Variables
-        self.target_rtt = 16
+        self.target_rtt = 0.016 #(s) 
         self.channels   = []
         self.name       = ''
 
@@ -51,6 +51,9 @@ class stream:
 
     def tx_ipaddrs(self):
         return [i[0] for i in self.links]
+    
+    def rx_ipaddrs(self):
+        return [i[1] for i in self.links]
     
     def validate(self):
         with open('temp/ip_table.json', 'r') as f:
@@ -98,7 +101,7 @@ class stream:
 def create_parse(parser: argparse.ArgumentParser):
     temp = stream()
     for i in temp.__dict__:
-        if i in ['target_rtt', 'channels', 'name']:
+        if i in ['channels', 'name']:
             continue
         attr = temp.__getattribute__(i)
         if isinstance(attr, list) and all(isinstance(item, list) for item in attr):
@@ -112,7 +115,7 @@ def create_parse(parser: argparse.ArgumentParser):
 def create_command(stream: stream, file_addr: str, clear: bool = False):
     command = f'cd util; python3 stream.py --file {file_addr}'
     for i in stream.__dict__:
-        if i in ['priority', 'target_rtt', 'channels', 'name']:
+        if i in ['priority', 'channels', 'name']:
             continue
         attr = stream.__getattribute__(i)
         if isinstance(attr, list):

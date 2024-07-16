@@ -36,10 +36,34 @@
                 "duration": 10,
                 "port": 0,
                 "calc_rtt": "",
-                "tos": 100
+                "tos": 100,
+                "src_ipaddrs": "--src_ipaddrs=127.0.0.1"
             },
             "commands": [
-                "(cd stream-replay; ./target/release/stream-replay-rx $port $duration calc-rtt)"
+                "(cd stream-replay; ./target/release/stream-replay-rx $port $duration calc-rtt $src_ipaddrs)"
+            ],
+            "outputs": {
+                "throughput": {
+                    "cmd": "echo $output_0",
+                    "format": "Average Throughput: (\\d+\\.\\d+) Mbps"
+                },
+                "packet_loss": {
+                    "cmd": "echo $output_0",
+                    "format": "Packet loss rate: (\\d+\\.\\d+)"
+                }
+            }
+        },
+        "outputs_throughput_jitter_trace": {
+            "description": "Run stream-replay with default manifest file.",
+            "parameters": {
+                "duration": 10,
+                "port": 0,
+                "calc_rtt": "",
+                "tos": 100,
+                "src_ipaddrs": "--src_ipaddrs=127.0.0.1"
+            },
+            "commands": [
+                "(cd stream-replay; RUST_LOG=trace ./target/release/stream-replay-rx $port $duration calc-rtt $src_ipaddrs)"
             ],
             "outputs": {
                 "throughput": {
@@ -140,6 +164,18 @@
             },
             "commands": [
                 "(cd stream-replay; ./target/release/stream-replay data/$manifest_name $duration --ipc-port $ipc-port)"
+            ]
+        },
+        "run-replay-client_trace": {
+            "description": "Run stream-replay with default manifest file.",
+            "parameters": {
+                "target_addr": "",
+                "duration": 10,
+                "manifest_name": "manifest.json",
+                "ipc-port": 11112
+            },
+            "commands": [
+                "(cd stream-replay; RUST_LOG=trace ./target/release/stream-replay data/$manifest_name $duration --ipc-port $ipc-port)"
             ]
         },
         "run-replay-client-Windows": {

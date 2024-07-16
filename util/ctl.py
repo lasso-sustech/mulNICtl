@@ -67,6 +67,7 @@ class ipcManager:
                 ipc_res.update(json_res)
             except Exception as e:
                 print(e)
+                return {}
         return ipc_res
 
 
@@ -240,6 +241,10 @@ def start_transmission(graph:Graph, DURATION):
                         timeout= DURATION + 5,
                     )
                 else:
+                    src_ipaddrs = stream_handle.tx_ipaddrs()
+                    src_commands = ""
+                    for src_ip in src_ipaddrs:
+                        src_commands += f"--src-ipaddrs={src_ip} "
                     conn.batch(
                         receiver,
                         "outputs_throughput_jitter",
@@ -248,6 +253,7 @@ def start_transmission(graph:Graph, DURATION):
                             "duration": DURATION,
                             "calc_rtt": "--calc-rtt",
                             "tos": tos,
+                            "src_ipaddrs": src_commands,
                         },
                         timeout=DURATION + 5,
                     )
@@ -282,8 +288,79 @@ def start_transmission(graph:Graph, DURATION):
 
     return conn.executor.wait(DURATION + 5)
 
-def fileTransfer(graph, target_ip, output_folder):
-    isSend = False
+def start_transmission_trace_log(graph:Graph, DURATION):
+    """
+    Construct a transmission ready connector waiting to be applied
+    """
+    validate_ip_addr(graph)
+    conn = Connector()
+    # start reception
+    for device_name, links in graph.graph.items():
+        for link_name, streams in links.items():
+            # split link name to protocol, sender, receiver
+            # prot, sender, receiver = link_name.split("_")
+            # receiver = receiver if receiver else ""
+            receiver = LINK_NAME_TO_RX_NAME(link_name)
+            for stream_name, stream_handle in streams.items():
+                # extract port number
+                port_num, tos = stream_name.split("@")
+                if stream_handle.calc_rtt == False:
+                    # continue
+                    conn.batch(
+                        receiver,
+                        "outputs_throughput",
+                        {"port": port_num, "duration": DURATION},
+                        timeout= DURATION + 5,
+                    )
+                else:
+                    src_ipaddrs = stream_handle.tx_ipaddrs()
+                    src_commands = ""
+                    for src_ip in src_ipaddrs:
+                        src_commands += f"--src-ipaddrs={src_ip} "
+                    conn.batch(
+                        receiver,
+                        "outputs_throughput_jitter_trace",
+                        {
+                            "port": port_num,
+                            "duration": DURATION,
+                            "calc_rtt": "--calc-rtt",
+                            "tos": tos,
+                            "src_ipaddrs": src_commands,
+                        },
+                        timeout=DURATION + 5,
+                    )
+
+    conn.executor.wait(1)
+    # start transmission
+    for device_name, links in graph.graph.items():
+        for link_name, streams in links.items():
+            if streams == {}:
+                continue
+            # split link name to protocol, sender, receiver
+            sender = LINK_NAME_TO_TX_NAME(link_name)
+            prot = LINK_NAME_TO_PROT_NAME(link_name)
+            receiver = LINK_NAME_TO_RX_NAME(link_name)
+            if receiver:
+                ip_addr = graph.info_graph[receiver][prot + "_ip_addr"]
+            else:
+                ip_addr = "127.0.0.1"
+            conn.batch(
+                sender,
+                "run-replay-client_trace",
+                {
+                    "target_addr": ip_addr,
+                    "duration": DURATION,
+                    "manifest_name": link_name + ".json",
+                    "ipc-port": graph.info_graph[sender][link_name][
+                        "ipc_port"
+                    ],
+                },
+                timeout= DURATION + 5,
+            )
+
+    return conn.executor.wait(DURATION + 5)
+
+def fileTransfer(graph, target_ip, output_folder, file_name, isSend = False):
     conn = Connector()
     import threading
     from tools.file_rx import receiver
@@ -291,17 +368,19 @@ def fileTransfer(graph, target_ip, output_folder):
     threading.Thread(target=receiver, args=(target_ip, port, output_folder,)).start()
     for device_name, links in graph.graph.items():
         for link_name, streams in links.items():
-            if not isSend:
-                prot, sender, receiver = link_name.split("_")
-                conn.batch(sender, "send_file", {"target_ip": target_ip, "file_name": "../stream-replay/logs/rtt-*.txt"})
-                isSend = True
-
-    conn.executor.wait(0.5).apply()
+            if isSend:
+                sender = LINK_NAME_TO_TX_NAME(link_name)
+            else:
+                sender = LINK_NAME_TO_RX_NAME(link_name)
+            
+            conn.batch(sender, "send_file", {"target_ip": target_ip, "file_name": file_name}) #"../stream-replay/logs/rtt-*.txt"
+            conn.executor.wait(0.5).apply()
+            return None
 
 def read_rtt(graph) -> List[dataStruct]:
     
     conn = Connector()
-    opStructs = []
+    opStructs = {}
     for device_name, links in graph.graph.items():
         for link_name, streams in links.items():
             if streams == {}:
@@ -329,7 +408,7 @@ def read_rtt(graph) -> List[dataStruct]:
                     data = dataStruct(results[idx])
                 except:
                     raise ValueError(f'stream {stream_name} transmitted on link {link_name}:\n\t RTT not found, please check: 1. NIC connection 2. port overlapping')
-                opStructs.append(data)
+                opStructs.update({stream_name : data})
                 graph.info_graph[device_name][link_name][stream_name].update(
                     {"channel_val": data}
                 )

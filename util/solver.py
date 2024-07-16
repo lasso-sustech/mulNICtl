@@ -163,7 +163,7 @@ class channelSwitchSolver:
         tx_parts = qos[constHead.TX_PARTS]
         if all( part == 0 for part in tx_parts) or all( part == 1 for part in tx_parts):
             return False
-        actual_tx_parts = [ 1 - tx_parts[0], tx_parts[1]]
+        actual_tx_parts = [ tx_parts[0], 1 - tx_parts[1]]
         channel_rtt = qos[constHead.CHANNEL_RTTS]
         predicted_rtt = [ channel_rtt[idx] / actual_tx_parts[idx]   for idx in range(len(actual_tx_parts)) ]
         if any( rtt < qos['target_rtt'] * self.back_switch_threshold for rtt in predicted_rtt):
