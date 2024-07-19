@@ -3,6 +3,10 @@ mod data;
 
 pub use ipc::IPCController;
 
+use jni::JNIEnv;
+use jni::objects::{JClass, JString};
+use jni::sys::jboolean;
+
 static mut ENABLE_CONTROLLER: bool = false;
 
 #[no_mangle]
