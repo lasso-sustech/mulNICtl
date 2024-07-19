@@ -8,7 +8,6 @@ static mut ENABLE_CONTROLLER: bool = false;
 #[no_mangle]
 pub fn start_controller(target_uri: String) {
     let _content = reqwest::blocking::get(&target_uri).unwrap().text().unwrap();
-    let _controller = IPCController::new(target_uri, 12345);
 
     loop {
         // check if controller is enabled
