@@ -99,6 +99,13 @@ class stream:
         return self
 
 def create_parse(parser: argparse.ArgumentParser):
+    def bool_str(v):
+        if v.lower() in ('yes', 'true', 't', 'y', '1'):
+            return True
+        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+            return False
+        else:
+            raise argparse.ArgumentTypeError('Boolean value expected.')
     temp = stream()
     for i in temp.__dict__:
         if i in ['channels', 'name']:
@@ -108,6 +115,8 @@ def create_parse(parser: argparse.ArgumentParser):
             parser.add_argument('--' + i, type=type(attr[0][0]), nargs='+', action = 'append')
         elif isinstance(attr, list):
             parser.add_argument('--' + i, type=type(attr[0]), nargs='+', default=attr)
+        elif isinstance(attr, bool):
+            parser.add_argument('--' + i, type=bool_str, default=attr)
         else:
             parser.add_argument('--' + i, type=type(attr), default=attr)
     return parser
@@ -139,7 +148,9 @@ if __name__ == "__main__":
     parser = create_parse(parser)
     args = parser.parse_args()
     temp = stream()
+    print(args)
     for i in temp.__dict__:
+        print
         if hasattr(args, i):
             temp.__setattr__(i, args.__getattribute__(i))
     temp.write_to_manifest(args.file, args.clear)
