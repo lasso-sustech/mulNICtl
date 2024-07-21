@@ -2,7 +2,20 @@ use std::collections::HashMap;
 
 use crate::{action::Action, qos::Qos, state::State, Solver};
 
-pub struct RttBalanceSolver;
+
+pub struct RttBalanceSolver {
+    #[warn(dead_code)]
+    pub backward_threshold: f64,
+}
+
+#[allow(dead_code)]
+impl RttBalanceSolver {
+    pub fn new() -> Self {
+        RttBalanceSolver {
+            backward_threshold: 0.8,
+        }
+    }
+}
 
 impl Solver for RttBalanceSolver{
     fn control(&self, qoses: HashMap<String, Qos>, channel_state: &State) -> HashMap<String, Action> {
@@ -50,14 +63,16 @@ impl ChannelBalanceSolver {
         assert_eq!(tx_parts.len(), 2, "TX parts should have 2 parts");
         assert_eq!(tx_parts[0], tx_parts[1], "In rtt balance mode, TX parts should be the same");
 
-        if qos.channel_rtts.iter().any(|&rtt| rtt == 0.0) {
-            return tx_parts;
-        }
+        // if qos.channel_rtts.iter().any(|&rtt| rtt == 0.0) {
+        //     return tx_parts;
+        // }
 
-        if (qos.channel_rtts[0] - qos.channel_rtts[1]).abs() > self.epsilon_rtt {
-            tx_parts[0] += if qos.channel_rtts[0] > qos.channel_rtts[1] { self.min_step } else { -self.min_step };
-            tx_parts[0] = (tx_parts[0].max(0.0).min(1.0) * 100.0).round() / 100.0;
-            tx_parts[1] = tx_parts[0];
+        if let Some(channel_rtts) = qos.channel_rtts {
+            if (channel_rtts[0] - channel_rtts[1]).abs() > self.epsilon_rtt {
+                tx_parts[0] += if channel_rtts[0] > channel_rtts[1] { -self.min_step } else { self.min_step };
+                tx_parts[0] = format!("{:.2}", tx_parts[0].clamp(0.0, 1.0)).parse().unwrap();
+                tx_parts[1] = tx_parts[0];
+            }
         }
 
         tx_parts

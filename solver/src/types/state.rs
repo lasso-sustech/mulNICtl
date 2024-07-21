@@ -36,7 +36,7 @@ impl State{
     fn color(rtt: f64, target_rtt: f64) -> Color{
         if rtt < target_rtt * 0.8{
             Color::Green
-        }else if rtt > target_rtt{
+        }else if rtt > target_rtt {
             Color::Red
         }else{
             Color::Yellow
@@ -44,11 +44,18 @@ impl State{
     }
 
     pub fn update(&mut self, qoss: HashMap<String, Qos>) {
+        // filter qoss with channel_rtts
         self.color = qoss.into_iter()
             .flat_map(|(_k, qos)| {
-                qos.channels.into_iter()
-                    .zip(qos.channel_rtts)
-                    .map(move |(channel, channel_rtt)| (channel, State::color(channel_rtt, qos.target_rtt)))
+                match qos.channel_rtts {
+                    Some(channel_rtts) => {
+                        qos.channels.into_iter()
+                            .zip(channel_rtts.into_iter())
+                            .map(move |(channel, channel_rtt)| (channel, State::color(channel_rtt, qos.target_rtt)))
+                            .collect::<Vec<_>>()
+                    }
+                    None => vec![],
+                }
             })
             .fold(HashMap::new(), |mut acc, (channel, color)| {
                 acc.entry(channel)
@@ -57,5 +64,5 @@ impl State{
                 acc
             });
     }
-    
 }
+

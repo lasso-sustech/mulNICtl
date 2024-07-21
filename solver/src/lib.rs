@@ -25,12 +25,12 @@ fn algorithm_selection(glb_state: &State) -> Option<Box<dyn Solver>>{
         [Color::Yellow] => None,
         [Color::Red]    => None,
 
-        [Color::Green, Color::Green]    => Some(Box::new(RttBalanceSolver)),
+        [Color::Green, Color::Green]    => Some(Box::new(RttBalanceSolver {backward_threshold: 0.8})),
         [Color::Yellow, Color::Yellow]  => None,
         [Color::Red, Color::Red]        => None,
 
-        [Color::Green, Color::Yellow] | [Color::Yellow, Color::Green]   => Some(Box::new(RttBalanceSolver)),
-        [Color::Green, Color::Red]  | [Color::Red, Color::Green]        => Some(Box::new(RttBalanceSolver)),
+        [Color::Green, Color::Yellow] | [Color::Yellow, Color::Green]   => Some(Box::new(RttBalanceSolver {backward_threshold: 0.8})),
+        [Color::Green, Color::Red]  | [Color::Red, Color::Green]        => Some(Box::new(RttBalanceSolver {backward_threshold: 0.8})),
         [Color::Yellow, Color::Red] | [Color::Red, Color::Yellow]       => None,
 
         _ => None,

@@ -5,7 +5,7 @@ type Link = (String, String);
 
 #[derive(Deserialize, Clone)]
 pub struct Qos {
-    pub channel_rtts: Vec<f64>,
+    pub channel_rtts: Option<Vec<f64>>,
     pub tx_parts: Vec<f64>,
     pub channel_probabilities:Option<Vec<f64>>,
     pub target_rtt: f64,
