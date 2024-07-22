@@ -2,6 +2,7 @@ mod types;
 mod cores;
 
 use std::collections::HashMap;
+
 use pyo3::{prelude::*, types::PyDict};
 
 use crate::types::{action, qos, state};
@@ -9,6 +10,7 @@ use crate::state::{State, Color};
 use crate::qos::Qos;
 use crate::action::{hash_map_to_py_dict, Action};
 use crate::cores::rtt_balance::RttBalanceSolver;
+use crate::cores::file_restrict::FileSolver;
 
 trait Solver {
     fn control(&self, qos: HashMap<String, Qos>, channel_state: &State) -> HashMap<String, Action>;
@@ -23,15 +25,15 @@ fn algorithm_selection(glb_state: &State) -> Option<Box<dyn Solver>>{
     match color_values.as_slice() {
         [Color::Green]  => None,
         [Color::Yellow] => None,
-        [Color::Red]    => None,
+        [Color::Red]    => Some( Box::new(FileSolver {step_size: 10.0}) ),
 
-        [Color::Green, Color::Green]    => Some(Box::new(RttBalanceSolver {backward_threshold: 0.8})),
+        [Color::Green, Color::Green]    => Some( Box::new(RttBalanceSolver {backward_threshold: 0.8}) ),
         [Color::Yellow, Color::Yellow]  => None,
-        [Color::Red, Color::Red]        => None,
+        [Color::Red, Color::Red]        => Some( Box::new(FileSolver {step_size: 10.0}) ),
 
-        [Color::Green, Color::Yellow] | [Color::Yellow, Color::Green]   => Some(Box::new(RttBalanceSolver {backward_threshold: 0.8})),
-        [Color::Green, Color::Red]  | [Color::Red, Color::Green]        => Some(Box::new(RttBalanceSolver {backward_threshold: 0.8})),
-        [Color::Yellow, Color::Red] | [Color::Red, Color::Yellow]       => None,
+        [Color::Green, Color::Yellow] | [Color::Yellow, Color::Green]   => Some( Box::new(RttBalanceSolver {backward_threshold: 0.8}) ),
+        [Color::Green, Color::Red]  | [Color::Red, Color::Green]        => Some( Box::new(RttBalanceSolver {backward_threshold: 0.8}) ),
+        [Color::Yellow, Color::Red] | [Color::Red, Color::Yellow]       => Some( Box::new(FileSolver {step_size: 10.0}) ),
 
         _ => None,
     }

@@ -11,6 +11,7 @@ pub struct Qos {
     pub target_rtt: f64,
     pub links : Vec<Link>,
     pub channels: Vec<String>,
+    pub throttle: f64,
 }
 
 impl FromPyObject<'_> for Qos {
@@ -26,7 +27,8 @@ impl FromPyObject<'_> for Qos {
         let temp_links: Vec<Vec<String>> = ob.get_item("links")?.extract()?;
         let links = temp_links.iter().map(|x| (x[0].clone(), x[1].clone())).collect();
         let channels = ob.get_item("channels")?.extract()?;
+        let throttle = ob.get_item("throttle")?.extract()?;
 
-        Ok(Qos { channel_rtts, tx_parts, channel_probabilities, target_rtt, links, channels})
+        Ok(Qos { channel_rtts, tx_parts, channel_probabilities, target_rtt, links, channels, throttle})
     }
 }
