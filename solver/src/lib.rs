@@ -43,6 +43,7 @@ fn algorithm_selection(glb_state: &State) -> Option<Box<dyn Solver>>{
 #[derive(Clone)]
 pub struct Controller {
     glb_state: State,
+    history_qos: Vec<HashMap<String, Qos>>,
 }
 
 #[pymethods]
@@ -51,12 +52,17 @@ impl Controller {
     pub fn new() -> Controller {
         Controller {
             glb_state: State::new(),
+            history_qos: Vec::new(),
         }
     }
 
     #[pyo3(text_signature = "(self, qoss)")]
     pub fn control(&mut self, qoss: HashMap<String, Qos>) -> Py<PyDict> {
-        self.glb_state.update(qoss.clone());
+        self.history_qos.push(qoss.clone());
+        if self.history_qos.len() > 10 {
+            self.history_qos.remove(0);
+        }
+        self.glb_state.update(&qoss);
 
         let solver = algorithm_selection(&self.glb_state);
         match solver {

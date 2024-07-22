@@ -43,15 +43,15 @@ impl State{
         }
     }
 
-    pub fn update(&mut self, qoss: HashMap<String, Qos>) {
+    pub fn update(&mut self, qoss: & HashMap<String, Qos>) {
         // filter qoss with channel_rtts
         self.color = qoss.into_iter()
             .flat_map(|(_k, qos)| {
-                match qos.channel_rtts {
+                match &qos.channel_rtts {
                     Some(channel_rtts) => {
-                        qos.channels.into_iter()
+                        qos.channels.clone().into_iter()
                             .zip(channel_rtts.into_iter())
-                            .map(move |(channel, channel_rtt)| (channel, State::color(channel_rtt, qos.target_rtt)))
+                            .map(move |(channel, channel_rtt)| (channel, State::color(channel_rtt.clone(), qos.target_rtt)))
                             .collect::<Vec<_>>()
                     }
                     None => vec![],
