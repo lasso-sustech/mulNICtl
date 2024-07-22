@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{action::Action, qos::Qos, state::State, Solver};
+use crate::{action::Action, qos::Qos, state::State, types::state::Color, Solver};
 
 
 pub struct RttBalanceSolver {
@@ -20,10 +20,10 @@ impl RttBalanceSolver {
 impl Solver for RttBalanceSolver{
     fn control(&self, qoses: HashMap<String, Qos>, channel_state: &State) -> HashMap<String, Action> {
         qoses.into_iter().map(|(name, qos)| {
-            let tx_parts = ChannelBalanceSolver::new().control(qos.clone());
             let channel_colors = qos.channels.iter()
                 .filter_map(|channel| channel_state.color.get(channel).cloned())
                 .collect();
+            let tx_parts = ChannelBalanceSolver::new().control(qos.clone(), channel_state);
             (name, Action::new(Some(tx_parts), None, channel_colors))
         }).collect()
     }
@@ -50,15 +50,15 @@ impl ChannelBalanceSolver {
         }
     }
 
-    fn control(&mut self, qos: Qos) -> Vec<f64> {
+    fn control(&mut self, qos: Qos, channel_state: &State) -> Vec<f64> {
         if self.redundency_mode {
             self.redundency_balance(qos)
         } else {
-            self.solve_by_rtt_balance(qos)
+            self.solve_by_rtt_balance(qos, channel_state)
         }
     }
 
-    fn solve_by_rtt_balance(&mut self, qos: Qos) -> Vec<f64> {
+    fn solve_by_rtt_balance(&mut self, qos: Qos, channel_state: &State) -> Vec<f64> {
         let mut tx_parts = qos.tx_parts.clone();
         assert_eq!(tx_parts.len(), 2, "TX parts should have 2 parts");
         assert_eq!(tx_parts[0], tx_parts[1], "In rtt balance mode, TX parts should be the same");
@@ -69,6 +69,13 @@ impl ChannelBalanceSolver {
 
         if let Some(channel_rtts) = qos.channel_rtts {
             if (channel_rtts[0] - channel_rtts[1]).abs() > self.epsilon_rtt {
+                let direction = if channel_rtts[0] > channel_rtts[1] { 1 } else { 0 };
+
+                // if the direction is toward yellow or red channel, stop it
+                if channel_state.color.get(&qos.channels[direction]).cloned() != Some(Color::Green) {
+                    return tx_parts;
+                }
+
                 tx_parts[0] += if channel_rtts[0] > channel_rtts[1] { -self.min_step } else { self.min_step };
                 tx_parts[0] = format!("{:.2}", tx_parts[0].clamp(0.0, 1.0)).parse().unwrap();
                 tx_parts[1] = tx_parts[0];
