@@ -3,7 +3,7 @@ import sys
 import os
 import time
 from util.trans_graph import Graph
-from util.trans_graph import LINK_NAME_TO_TX_NAME, LINK_NAME_TO_RX_NAME, LINK_NAME_TO_PROT_NAME, LINK_NAME_TO_TX_IF_NAME
+from util.trans_graph import LINK_NAME_TO_TX_NAME, LINK_NAME_TO_RX_NAME, LINK_NAME_TO_PROT_NAME, LINK_NAME_TO_TX_IF_NAME, LINK_NAME_TO_RX_IF_NAME
 from util.solver import dataStruct
 from util.stream import stream, create_command
 import util.constHead as constHead
@@ -62,7 +62,7 @@ class ipcManager:
         ipc_res = {}
         for key, sock in self.ipc_handles.items():
             try:
-                print(f"Getting statistics from {key}")
+                # print(f"Getting statistics from {key}")
                 json_res = json.loads(sock.statistics())["cmd"]["Statistics"]
                 ipc_res.update(json_res)
             except Exception as e:
@@ -79,7 +79,16 @@ class ipcManager:
                 sock.tx_part({name: value["tx_parts"]})
             except Exception as e:
                 print(e)
-
+    
+    def ipc_throttle_ctrl(self, controls:dict):
+        for name, value in controls.items():
+            dev_name = self.stream_name_device_map[name]
+            sock = self.ipc_handles[dev_name]
+            if value["throttle"] is not None:
+                try:
+                    sock.throttle({name: value["throttle"]})
+                except Exception as e:
+                    print(e)
 
 ## ip setup component
 def _ip_extract_all(graph: Graph):
@@ -266,9 +275,10 @@ def start_transmission(graph:Graph, DURATION):
                 continue
             # split link name to protocol, sender, receiver
             sender = LINK_NAME_TO_TX_NAME(link_name)
-            prot = LINK_NAME_TO_PROT_NAME(link_name)
+            prot = LINK_NAME_TO_TX_IF_NAME(link_name)
             receiver = LINK_NAME_TO_RX_NAME(link_name)
             if receiver:
+                prot = LINK_NAME_TO_RX_IF_NAME(link_name)
                 ip_addr = graph.info_graph[receiver][prot + "_ip_addr"]
             else:
                 ip_addr = "127.0.0.1"
@@ -360,7 +370,7 @@ def start_transmission_trace_log(graph:Graph, DURATION):
 
     return conn.executor.wait(DURATION + 5)
 
-def fileTransfer(graph, target_ip, output_folder, file_name, isSend = False):
+def fileTransfer(graph, target_ip, output_folder, file_name, file_link_name):
     conn = Connector()
     import threading
     from tools.file_rx import receiver
@@ -368,11 +378,7 @@ def fileTransfer(graph, target_ip, output_folder, file_name, isSend = False):
     threading.Thread(target=receiver, args=(target_ip, port, output_folder,)).start()
     for device_name, links in graph.graph.items():
         for link_name, streams in links.items():
-            if isSend:
-                sender = LINK_NAME_TO_TX_NAME(link_name)
-            else:
-                sender = LINK_NAME_TO_RX_NAME(link_name)
-            
+            sender = LINK_NAME_TO_TX_NAME(file_link_name)
             conn.batch(sender, "send_file", {"target_ip": target_ip, "file_name": file_name}) #"../stream-replay/logs/rtt-*.txt"
             conn.executor.wait(0.5).apply()
             return None

@@ -97,12 +97,13 @@ GB_CONTROL_SCHEMA = Schema({
 })
 
 traffic_config_schema = Schema(Or({
-    'thru'      : int,
+    'thru'      : Or(int, float),
     'link'      : str,
     'port'      : int,
     'file_type' : Or('file', 'proj'),
     'links'     : [[str]],
     'tx_parts'  : TX_PARTS_SCHEMA,
+    Optional('channels')  : [Or(CHANNEL0, CHANNEL1)],
     Optional('tos'): int,
 }, None))
 

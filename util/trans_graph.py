@@ -20,7 +20,7 @@ def _list_to_c_array(arr: list, arr_type=ctypes.c_float):
 
 LINK_NAME_TO_TX_NAME = lambda link_name : link_name.split('_')[-2]
 LINK_NAME_TO_RX_NAME = lambda link_name : link_name.split('_')[-1]
-LINK_NAME_TO_PROT_NAME = lambda link_name : '_'.join(link_name.split('_')[1:-2])
+LINK_NAME_TO_PROT_NAME = lambda link_name : '_'.join(link_name.split('_')[0:1])
 LINK_NAME_TO_TX_IF_NAME = lambda link_name : link_name.split('_')[0]
 LINK_NAME_TO_RX_IF_NAME = lambda link_name : link_name.split('_')[1]
 

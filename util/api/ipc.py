@@ -51,3 +51,7 @@ class ipc_control(ipc_socket):
         constHead.tx_part_control_schema.validate(tx_part)
         self.ipc_transmit('TxPart', tx_part)
         return None
+    
+    def release(self):
+        self.close()
+        return None

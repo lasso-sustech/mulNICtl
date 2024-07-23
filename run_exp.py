@@ -187,4 +187,35 @@ def exp_2024_7_16_3():
     ## run exp
     import exp
     
-exp_2024_7_16_3()
+# exp_2024_7_16_3()
+
+def exp_2024_7_17():
+    import sys
+    sys.path.append('./expSrc/2024-7-17/experiment1')
+    ## run exp
+    import exp
+    
+# exp_2024_7_17()
+
+def exp_2024_7_17_2():
+    import sys
+    sys.path.append('./expSrc/2024-7-17/experiment2')
+    ## run exp
+    import exp
+    
+# exp_2024_7_17_2()
+
+def lo_static():
+    import sys
+    sys.path.append('./expSrc/lo/statistic')
+    ## run exp
+    import exp
+    
+# lo_static()
+
+def func_test():
+    import sys
+    sys.path.append('./expSrc/test/func_test')
+    import exp
+    
+func_test()
