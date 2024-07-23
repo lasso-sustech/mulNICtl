@@ -3,13 +3,14 @@ mod cores;
 
 use std::collections::HashMap;
 
+use cores::green_solver::GRSolver;
 use pyo3::{prelude::*, types::PyDict};
 
 use crate::types::{action, qos, state};
 use crate::state::{State, Color};
 use crate::qos::Qos;
 use crate::action::{hash_map_to_py_dict, Action};
-use crate::cores::rtt_balance::RttBalanceSolver;
+use crate::cores::green_solver::GSolver;
 use crate::cores::file_restrict::FileSolver;
 
 trait Solver {
@@ -27,12 +28,12 @@ fn algorithm_selection(glb_state: &State) -> Option<Box<dyn Solver>>{
         [Color::Yellow] => None,
         [Color::Red]    => Some( Box::new(FileSolver {step_size: 10.0}) ),
 
-        [Color::Green, Color::Green]    => Some( Box::new(RttBalanceSolver {backward_threshold: 0.8}) ),
+        [Color::Green, Color::Green]    => Some( Box::new( GSolver {backward_threshold: 0.8, is_all_balance: false, throttle_step_size: 10.0}) ),
         [Color::Yellow, Color::Yellow]  => None,
-        [Color::Red, Color::Red]        => Some( Box::new(FileSolver {step_size: 10.0}) ),
+        [Color::Red, Color::Red]        => Some( Box::new( FileSolver {step_size: 10.0}) ),
 
-        [Color::Green, Color::Yellow] | [Color::Yellow, Color::Green]   => Some( Box::new(RttBalanceSolver {backward_threshold: 0.8}) ),
-        [Color::Green, Color::Red]  | [Color::Red, Color::Green]        => Some( Box::new(RttBalanceSolver {backward_threshold: 0.8}) ),
+        [Color::Green, Color::Yellow] | [Color::Yellow, Color::Green]   => Some( Box::new(GSolver {backward_threshold: 0.8, is_all_balance: true, throttle_step_size: 10.0}) ),
+        [Color::Green, Color::Red]  | [Color::Red, Color::Green]        => Some( Box::new(GRSolver {backward_threshold: 0.8, is_all_balance: true, throttle_step_size: 10.0}) ),
         [Color::Yellow, Color::Red] | [Color::Red, Color::Yellow]       => Some( Box::new(FileSolver {step_size: 10.0}) ),
 
         _ => None,
@@ -63,7 +64,6 @@ impl Controller {
             self.history_qos.remove(0);
         }
         self.glb_state.update(&qoss);
-
         let solver = algorithm_selection(&self.glb_state);
         match solver {
             Some(solver) => hash_map_to_py_dict(solver.control(qoss, &self.glb_state)),

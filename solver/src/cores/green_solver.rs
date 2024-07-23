@@ -3,28 +3,80 @@ use std::collections::HashMap;
 use crate::{action::Action, qos::Qos, state::State, types::state::Color, Solver};
 
 
-pub struct RttBalanceSolver {
+pub struct GSolver {
     #[warn(dead_code)]
     pub backward_threshold: f64,
+    pub is_all_balance: bool,
+    pub throttle_step_size: f64,
 }
 
 #[allow(dead_code)]
-impl RttBalanceSolver {
+impl GSolver {
     pub fn new() -> Self {
-        RttBalanceSolver {
+        GSolver {
             backward_threshold: 0.8,
+            is_all_balance: false,
+            throttle_step_size: 10.0,
         }
     }
 }
 
-impl Solver for RttBalanceSolver{
+impl Solver for GSolver{
     fn control(&self, qoses: HashMap<String, Qos>, channel_state: &State) -> HashMap<String, Action> {
         qoses.into_iter().map(|(name, qos)| {
             let channel_colors = qos.channels.iter()
                 .filter_map(|channel| channel_state.color.get(channel).cloned())
                 .collect();
-            let tx_parts = ChannelBalanceSolver::new().control(qos.clone(), channel_state);
-            (name, Action::new(Some(tx_parts), None, channel_colors))
+            if qos.channel_rtts.is_some(){
+                let tx_parts = ChannelBalanceSolver::new(self.is_all_balance).control(qos.clone(), channel_state);
+                (name, Action::new(Some(tx_parts), None, channel_colors))
+            }
+            else{
+                let mut throttle = qos.throttle + self.throttle_step_size;
+                if throttle <= 0.0 {
+                    throttle = 1.0;
+                }
+                (name, Action::new(None, Some(throttle), channel_colors))
+            }
+        }).collect()
+    }
+}
+
+pub struct GRSolver {
+    #[warn(dead_code)]
+    pub backward_threshold: f64,
+    pub is_all_balance: bool,
+    pub throttle_step_size: f64,
+}
+
+#[allow(dead_code)]
+impl GRSolver {
+    pub fn new() -> Self {
+        GRSolver {
+            backward_threshold: 0.8,
+            is_all_balance: false,
+            throttle_step_size: 10.0,
+        }
+    }
+}
+
+impl Solver for GRSolver{
+    fn control(&self, qoses: HashMap<String, Qos>, channel_state: &State) -> HashMap<String, Action> {
+        qoses.into_iter().map(|(name, qos)| {
+            let channel_colors = qos.channels.iter()
+                .filter_map(|channel| channel_state.color.get(channel).cloned())
+                .collect();
+            if qos.channel_rtts.is_some(){
+                let tx_parts = ChannelBalanceSolver::new(self.is_all_balance).control(qos.clone(), channel_state);
+                (name, Action::new(Some(tx_parts), None, channel_colors))
+            }
+            else{
+                let mut throttle = qos.throttle - self.throttle_step_size;
+                if throttle <= 0.0 {
+                    throttle = 1.0;
+                }
+                (name, Action::new(None, Some(throttle), channel_colors))
+            }
         }).collect()
     }
 }
@@ -36,10 +88,11 @@ pub struct ChannelBalanceSolver {
     epsilon_prob_upper: f64,
     epsilon_prob_lower: f64,
     redundency_mode: bool,
+    is_all_balance: bool,
 }
 
 impl ChannelBalanceSolver {
-    fn new() -> Self {
+    fn new(is_all_balance: bool) -> Self {
         ChannelBalanceSolver {
             inc_direction: [-1, 1],
             min_step: 0.05,
@@ -47,6 +100,7 @@ impl ChannelBalanceSolver {
             epsilon_prob_upper: 0.6,
             epsilon_prob_lower: 0.01,
             redundency_mode: false,
+            is_all_balance: is_all_balance,
         }
     }
 
@@ -60,14 +114,13 @@ impl ChannelBalanceSolver {
 
     fn solve_by_rtt_balance(&mut self, qos: Qos, channel_state: &State) -> Vec<f64> {
         let mut tx_parts = qos.tx_parts.clone();
-        assert_eq!(tx_parts.len(), 2, "TX parts should have 2 parts");
-        assert_eq!(tx_parts[0], tx_parts[1], "In rtt balance mode, TX parts should be the same");
 
-        // if qos.channel_rtts.iter().any(|&rtt| rtt == 0.0) {
-        //     return tx_parts;
-        // }
 
         if let Some(channel_rtts) = qos.channel_rtts {
+            if !self.is_all_balance && channel_rtts.iter().any(|&rtt| rtt == 0.0) {
+                return tx_parts;
+            }
+
             if (channel_rtts[0] - channel_rtts[1]).abs() > self.epsilon_rtt {
                 let direction = if channel_rtts[0] > channel_rtts[1] { 1 } else { 0 };
 

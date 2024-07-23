@@ -13,7 +13,12 @@ impl Solver for FileSolver {
             .filter_map(|channel| channel_state.color.get(channel).cloned())
             .collect();
             if qos.channel_rtts.is_none(){
-                let throttle = qos.throttle - self.step_size;
+                let mut throttle = qos.throttle - self.step_size;
+                if throttle <= 0.0 {
+                    throttle = 1.0;
+                }
+                println!("step_size: {}", self.step_size);
+                
                 (name, Action::new(None, Some(throttle), channel_colors))
             }
             else{

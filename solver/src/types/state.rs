@@ -33,36 +33,35 @@ impl State{
         }
     }
 
-    fn color(rtt: f64, target_rtt: f64) -> Color{
-        if rtt < target_rtt * 0.8{
-            Color::Green
-        }else if rtt > target_rtt {
+    fn color(rtt: f64, target_rtt: f64, outage_rate: f64) -> Color{
+        if rtt < target_rtt {
+            if outage_rate < 0.1 {
+                Color::Green
+            }
+            else{
+                Color::Yellow
+            }
+        }else {
             Color::Red
-        }else{
-            Color::Yellow
         }
     }
 
     pub fn update(&mut self, qoss: & HashMap<String, Qos>) {
         // filter qoss with channel_rtts
-        self.color = qoss.into_iter()
-            .flat_map(|(_k, qos)| {
-                match &qos.channel_rtts {
-                    Some(channel_rtts) => {
-                        qos.channels.clone().into_iter()
-                            .zip(channel_rtts.into_iter())
-                            .map(move |(channel, channel_rtt)| (channel, State::color(channel_rtt.clone(), qos.target_rtt)))
-                            .collect::<Vec<_>>()
-                    }
-                    None => vec![],
+        let mut color_map: HashMap<String, Color> = HashMap::new();
+
+        for qos in qoss.values() {
+            if let (Some(channel_rtts), Some(ch_outage_rates)) = (&qos.channel_rtts, &qos.ch_outage_rates) {
+                for (channel, (channel_rtt, outage_rate)) in qos.channels.iter().zip(channel_rtts.iter().zip(ch_outage_rates.iter())) {
+                    let color = State::color(*channel_rtt, qos.target_rtt, *outage_rate);
+                    color_map.entry(channel.clone())
+                        .and_modify(|existing_color| *existing_color = max(existing_color.clone(), color.clone()))
+                        .or_insert(color);
                 }
-            })
-            .fold(HashMap::new(), |mut acc, (channel, color)| {
-                acc.entry(channel)
-                    .and_modify(|e| *e = max(e.clone(), color.clone()))
-                    .or_insert(color);
-                acc
-            });
+            }
+        }
+
+        self.color = color_map;
     }
 }
 
