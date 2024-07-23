@@ -6,6 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+ndarray = "0.15.6"
+ndarray-linalg = "0.16.0"
 pyo3 = { version = "0.15", features = ["extension-module"] }
 
 [dependencies.serde]
