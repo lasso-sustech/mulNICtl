@@ -54,6 +54,10 @@
                 "packet_loss": {
                     "cmd": "echo $output_0",
                     "format": "Packet loss rate: (\\d+\\.\\d+)"
+                },
+                "stuttering rate":{
+                    "cmd": "echo $output_0",
+                    "format": "Stuttering rate: (\\d+\\.\\d+)"
                 }
             }
         },
