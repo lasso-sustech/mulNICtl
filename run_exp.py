@@ -218,4 +218,11 @@ def func_test():
     sys.path.append('./expSrc/test/func_test')
     import exp
     
-func_test()
+# func_test()
+
+def transmit_test():
+    import sys
+    sys.path.append('./expSrc/test/transmit_test')
+    import exp
+    
+transmit_test()

@@ -49,12 +49,12 @@ class ipcManager:
                 else:
                     for stream_name, _stream in streams.items():
                         print(f"stream {stream_name} is associated with device {device_name}")
-                        stream_name_device_map.update({stream_name: device_name})
+                        stream_name_device_map.update({stream_name: link_name})
                 ip_addr = graph.info_graph[device_name][LINK_NAME_TO_PROT_NAME(link_name) + "_ip_addr"]
                 local_port = graph.info_graph[device_name][link_name]["local_port"]
                 ipc_port = graph.info_graph[device_name][link_name]["ipc_port"]
                 print(f"device {device_name} with ip {ip_addr} and ipc port {ipc_port}")
-                ipc_handles.update({device_name: ipc_control(ip_addr, ipc_port, local_port)})
+                ipc_handles.update({link_name: ipc_control(ip_addr, ipc_port, local_port)})
         self.ipc_handles = ipc_handles
         self.stream_name_device_map = stream_name_device_map
 
