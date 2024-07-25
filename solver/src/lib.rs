@@ -1,5 +1,8 @@
 mod types;
 mod cores;
+mod tests;
+
+extern crate blas_src;
 
 use std::collections::HashMap;
 

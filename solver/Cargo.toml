@@ -6,13 +6,21 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ndarray = "0.15.6"
+ndarray = { version = "0.15.0", features = ["blas"] }
+blas-src = { version = "0.8", features = ["openblas"] }
+openblas-src = { version = "0.10", features = ["cblas", "system"] }
 ndarray-linalg = "0.16.0"
-pyo3 = { version = "0.15", features = ["extension-module"] }
 
 [dependencies.serde]
 version = "1.0"
 features = ["derive"]
+
+[dependencies.pyo3]
+version = "0.15"
+
+[features]
+extension-module = ["pyo3/extension-module"]
+default = ["extension-module"]
 
 [build-dependencies]
 maturin = "0.12"

@@ -76,7 +76,13 @@ impl LinearRegression {
     {
         let rhs = X.t().dot(y);
         let linear_operator = X.t().dot(X);
-        linear_operator.solve_into(rhs).unwrap()
+        // print the inversion of linear_operator
+        let res = linear_operator.solve_into(rhs);
+        if res.is_err() {
+            println!("Linear operator: {:?}", linear_operator);
+            panic!("The matrix is singular and cannot be inverted!");
+        }
+        res.unwrap()
     }
 
     fn _predict<A>(&self, X: &ArrayBase<A, Ix2>) -> Array1<f64>
