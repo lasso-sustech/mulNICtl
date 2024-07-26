@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use std::{collections::HashMap};
 
-use crate::{action::Action, qos::Qos, state::State, types::state::Color, Solver};
+use crate::{action::Action, qos::Qos, state::State, types::state::Color, CtlRes, CtlState, DecSolver};
 
 
 pub struct GSolver {
@@ -21,25 +21,77 @@ impl GSolver {
     }
 }
 
-impl Solver for GSolver{
-    fn control(&self, qoses: HashMap<String, Qos>, channel_state: &State) -> HashMap<String, Action> {
-        qoses.into_iter().map(|(name, qos)| {
-            let channel_colors = qos.channels.iter()
+impl DecSolver for GSolver{
+    fn control(&self, qoses: HashMap<String, Qos>, channel_state: &State) -> CtlRes {
+
+        if let Some(back_switch_name) = determine_back_switch(&qoses, 0.8){
+            let mut controls: HashMap<String, Action> = HashMap::new();
+
+            if let Some(qos) = qoses.get(back_switch_name) {
+                let channel_colors: Vec<Color>  = qos.channels.iter()
+                    .filter_map(|channel| channel_state.color.get(channel).cloned())
+                    .collect();
+        
+                // add default offset to tx_parts
+                let tx_parts = qos.tx_parts.clone().into_iter().map(|x| x + 0.1).collect();
+        
+                controls.insert(
+                    back_switch_name.clone(),
+                    Action::new(Some(tx_parts), None, Some(channel_colors)),
+                );
+            }
+
+            return (controls, CtlState::BackSwitch, Some(back_switch_name.clone()));
+        }
+
+        let controls = qoses.into_iter().map(|(name, qos)| {
+            let channel_colors: Vec<Color>  = qos.channels.iter()
                 .filter_map(|channel| channel_state.color.get(channel).cloned())
                 .collect();
             if qos.channel_rtts.is_some(){
                 let tx_parts = ChannelBalanceSolver::new(self.is_all_balance).control(qos.clone(), channel_state);
-                (name, Action::new(Some(tx_parts), None, channel_colors))
+                (name, Action::new(Some(tx_parts), None, Some(channel_colors)))
             }
             else{
                 let mut throttle = qos.throttle + self.throttle_step_size;
                 if throttle <= 0.0 {
                     throttle = 1.0;
                 }
-                (name, Action::new(None, Some(throttle), channel_colors))
+                (name, Action::new(None, Some(throttle), Some(channel_colors)))
             }
-        }).collect()
+        }).collect();
+        let ctrl_state = CtlState::Normal;
+        (controls, ctrl_state, None)
+
     }
+}
+
+fn determine_back_switch(qoses: &HashMap<String, Qos>, alpha: f64) -> Option<&String>{
+    let mut back_switch_task = None;
+    for (name, qos) in qoses {
+        if let Some(channel_rtts) = qos.channel_rtts.clone() {
+            let tx_parts = qos.tx_parts.clone();
+            let target_rtt = qos.target_rtt;
+        
+            if channel_rtts[0] == 0.0 || channel_rtts[1] == 0.0 {
+                continue;
+            }
+
+            let res:Vec<bool> = tx_parts.into_iter().zip(channel_rtts.into_iter()).map(|(tx_part, channel_rtt)| {
+                if channel_rtt <= target_rtt * alpha * tx_part {
+                    true
+                }
+                else{
+                    false
+                }
+            }).collect();
+        
+            if res.into_iter().any(|x| x) {
+                back_switch_task = Some(name);
+            }
+        }
+    }
+    back_switch_task
 }
 
 pub struct GRSolver {
@@ -60,24 +112,25 @@ impl GRSolver {
     }
 }
 
-impl Solver for GRSolver{
-    fn control(&self, qoses: HashMap<String, Qos>, channel_state: &State) -> HashMap<String, Action> {
-        qoses.into_iter().map(|(name, qos)| {
-            let channel_colors = qos.channels.iter()
+impl DecSolver for GRSolver{
+    fn control(&self, qoses: HashMap<String, Qos>, channel_state: &State) -> CtlRes {
+        let controls = qoses.into_iter().map(|(name, qos)| {
+            let channel_colors: Vec<Color> = qos.channels.iter()
                 .filter_map(|channel| channel_state.color.get(channel).cloned())
                 .collect();
             if qos.channel_rtts.is_some(){
                 let tx_parts = ChannelBalanceSolver::new(self.is_all_balance).control(qos.clone(), channel_state);
-                (name, Action::new(Some(tx_parts), None, channel_colors))
+                (name, Action::new(Some(tx_parts), None, Some(channel_colors)))
             }
             else{
                 let mut throttle = qos.throttle - self.throttle_step_size;
                 if throttle <= 0.0 {
                     throttle = 1.0;
                 }
-                (name, Action::new(None, Some(throttle), channel_colors))
+                (name, Action::new(None, Some(throttle), Some(channel_colors)))
             }
-        }).collect()
+        }).collect();
+        (controls, CtlState::Normal, None)
     }
 }
 
