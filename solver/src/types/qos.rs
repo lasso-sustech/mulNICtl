@@ -20,7 +20,7 @@ impl FromPyObject<'_> for Qos {
     fn extract(ob: &PyAny) -> PyResult<Self> {
         let channel_rtts = ob.get_item("channel_rtts")?.extract()?;
         let outage_rate = ob.get_item("outage_rate")?.extract()?;
-        let ch_outage_rates: Option<Vec<f64>> = ob.get_item("channel_rtts")?.extract()?;
+        let ch_outage_rates: Option<Vec<f64>> = ob.get_item("ch_outage_rates")?.extract()?;
         let tx_parts = ob.get_item("tx_parts")?.extract()?;
         let channel_probabilities: Option<Vec<f64>> = match ob.get_item("channel_probabilities") {
             Ok(val) => Some(val.extract()?),

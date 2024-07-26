@@ -29,6 +29,7 @@ trait CenSolver {
 fn algorithm_selection(glb_state: &State) -> Option<Box<dyn DecSolver>>{
     let color_values = glb_state.color.values().cloned().collect::<Vec<Color>>();
     if color_values.len() == 0 || color_values.len() > 2 {
+        println!("color_values: {:?}", color_values.clone());
         eprintln!("The number of channel is zero or more than 2; Not handle.");
         return None;
     }
@@ -41,9 +42,9 @@ fn algorithm_selection(glb_state: &State) -> Option<Box<dyn DecSolver>>{
         [Color::Yellow, Color::Yellow]  => None,
         [Color::Red, Color::Red]        => Some( Box::new( FileSolver {step_size: 10.0}) ),
 
-        [Color::Green, Color::Yellow] | [Color::Yellow, Color::Green]   => Some( Box::new(GSolver {backward_threshold: 0.8, is_all_balance: true, throttle_step_size: 10.0}) ),
+        [Color::Green, Color::Yellow] | [Color::Yellow, Color::Green]   => Some( Box::new(GSolver {backward_threshold: 0.8, is_all_balance: false, throttle_step_size: 10.0}) ),
         [Color::Green, Color::Red]  | [Color::Red, Color::Green]        => Some( Box::new(GRSolver {backward_threshold: 0.8, is_all_balance: true, throttle_step_size: 10.0}) ),
-        [Color::Yellow, Color::Red] | [Color::Red, Color::Yellow]       => Some( Box::new(FileSolver {step_size: 10.0}) ),
+        [Color::Yellow, Color::Red] | [Color::Red, Color::Yellow]       => Some( Box::new(GRSolver {backward_threshold: 0.8, is_all_balance: true, throttle_step_size: 10.0}) ),
 
         _ => None,
     }

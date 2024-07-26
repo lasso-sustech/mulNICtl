@@ -42,10 +42,13 @@ impl CenSolver for BackSwitchSolver {
         
         let mut controls = HashMap::new();
 
-        let tx_parts = if res[0] > res[1] {
+        let tx_parts = if res[0] > res[1] && res[1] < current_qos.target_rtt {
             [0.0, 0.0]
-        } else {
+        } else if res[0] < res[1] && res[0] < current_qos.target_rtt {
             [1.0, 1.0]
+        }
+        else{
+            [past_qos.tx_parts[0], past_qos.tx_parts[1]]
         };
 
         controls.insert(ctl_task, Action::new(Some(tx_parts.to_vec()), None, None));

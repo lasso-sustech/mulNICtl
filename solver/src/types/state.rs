@@ -5,7 +5,7 @@ use pyo3::ToPyObject;
 use crate::qos::Qos;
 
 
-#[derive(PartialEq, Eq, Ord, PartialOrd, Clone)]
+#[derive(PartialEq, Eq, Ord, PartialOrd, Clone, Debug)]
 pub enum Color {
     Green,
     Yellow,

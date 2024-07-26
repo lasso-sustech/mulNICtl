@@ -31,10 +31,16 @@ impl DecSolver for GSolver{
                 let channel_colors: Vec<Color>  = qos.channels.iter()
                     .filter_map(|channel| channel_state.color.get(channel).cloned())
                     .collect();
-        
+                
+                
                 // add default offset to tx_parts
-                let tx_parts = qos.tx_parts.clone().into_iter().map(|x| x + 0.1).collect();
-        
+                let tx_parts = if qos.tx_parts[0] + 0.1 <= 1.0 {
+                    qos.tx_parts.clone().into_iter().map(|x| x + 0.1).collect()
+                }
+                else{
+                    qos.tx_parts.clone().into_iter().map(|x| x - 0.1).collect()
+                };
+                
                 controls.insert(
                     back_switch_name.clone(),
                     Action::new(Some(tx_parts), None, Some(channel_colors)),
@@ -56,6 +62,8 @@ impl DecSolver for GSolver{
                 let mut throttle = qos.throttle + self.throttle_step_size;
                 if throttle <= 0.0 {
                     throttle = 1.0;
+                } else if throttle >= 300.0 {
+                    throttle = 300.0;
                 }
                 (name, Action::new(None, Some(throttle), Some(channel_colors)))
             }
@@ -126,6 +134,8 @@ impl DecSolver for GRSolver{
                 let mut throttle = qos.throttle - self.throttle_step_size;
                 if throttle <= 0.0 {
                     throttle = 1.0;
+                } else if throttle >= 300.0 {
+                    throttle = 300.0;
                 }
                 (name, Action::new(None, Some(throttle), Some(channel_colors)))
             }
@@ -170,7 +180,7 @@ impl ChannelBalanceSolver {
 
 
         if let Some(channel_rtts) = qos.channel_rtts {
-            if !self.is_all_balance && channel_rtts.iter().any(|&rtt| rtt == 0.0) {
+            if !self.is_all_balance && qos.tx_parts.iter().any(|&tx_part| tx_part == 0.0 || tx_part == 1.0) {
                 return tx_parts;
             }
 
@@ -178,7 +188,7 @@ impl ChannelBalanceSolver {
                 let direction = if channel_rtts[0] > channel_rtts[1] { 1 } else { 0 };
 
                 // if the direction is toward yellow or red channel, stop it
-                if channel_state.color.get(&qos.channels[direction]).cloned() != Some(Color::Green) {
+                if channel_state.color.get(&qos.channels[direction]).cloned() == Some(Color::Red) {
                     return tx_parts;
                 }
 
