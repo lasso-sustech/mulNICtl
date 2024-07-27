@@ -42,10 +42,10 @@ impl CenSolver for BackSwitchSolver {
         
         let mut controls = HashMap::new();
 
-        let tx_parts = if res[0] > res[1] && res[1] < current_qos.target_rtt {
-            [0.0, 0.0]
-        } else if res[0] < res[1] && res[0] < current_qos.target_rtt {
+        let tx_parts = if res[0] < current_qos.target_rtt {
             [1.0, 1.0]
+        } else if res[1] < current_qos.target_rtt {
+            [0.0, 0.0]
         }
         else{
             [past_qos.tx_parts[0], past_qos.tx_parts[1]]
