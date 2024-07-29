@@ -1,3 +1,4 @@
+#![allow(non_snake_case)]
 use std::collections::HashMap;
 
 
@@ -56,6 +57,7 @@ impl CenSolver for BackSwitchSolver {
 
     }
 }
+
 
 // Function to transform Qos vector to X and y
 pub fn transform_qos_to_xy(qos_vector: Vec<&Qos>) -> Vec<(Array2<f64>, Array1<f64>)> {

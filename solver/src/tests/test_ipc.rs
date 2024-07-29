@@ -1,7 +1,4 @@
 mod test {
-    use std::collections::HashMap;
-
-
     #[test]
     #[ignore]
     fn statistics() {
@@ -19,7 +16,7 @@ mod test {
     #[ignore]
     fn throttle() {
         use crate::api::ipc::IPCController;
-
+        use std::collections::HashMap;
         // Create an IPCController
         let ipc = IPCController::new(String::from("127.0.0.1"), 11112);
 
@@ -44,6 +41,7 @@ mod test {
     #[ignore]
     fn tx_part(){
         use crate::api::ipc::IPCController;
+        use std::collections::HashMap;
 
         // Create an IPCController
         let ipc = IPCController::new(String::from("127.0.0.1"), 11112);

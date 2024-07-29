@@ -1,16 +1,17 @@
 mod types;
 mod cores;
 mod tests;
+mod api;
 
 extern crate blas_src;
 
-use std::collections::{HashMap};
+use std::collections::HashMap;
 
 use cores::back_switch_solver::BackSwitchSolver;
 use cores::green_solver::GRSolver;
 use pyo3::{prelude::*, types::PyDict};
 
-use crate::types::{action, qos, state};
+use crate::types::{action, qos, state, static_value::StaticValue};
 use crate::state::{State, Color};
 use crate::qos::Qos;
 use crate::action::{hash_map_to_py_dict, Action};
@@ -56,7 +57,7 @@ enum CtlState {
     PredOpt,
     BackSwitch,
 }
-#[pyclass]
+
 #[derive(Clone)]
 pub struct Controller {
     glb_state: State,
@@ -65,9 +66,7 @@ pub struct Controller {
     ctl_task: Option<String>,
 }
 
-#[pymethods]
 impl Controller {
-    #[new]
     pub fn new() -> Controller {
         Controller {
             glb_state: State::new(),
@@ -77,14 +76,15 @@ impl Controller {
         }
     }
 
-    #[pyo3(text_signature = "(self, qoss)")]
-    pub fn control(&mut self, qoss: HashMap<String, Qos>) -> Py<PyDict> {
+    pub fn control(&mut self, qoss: HashMap<String, Qos>) -> HashMap<String, Action>{
         self.history_qos.push(qoss.clone());
         if self.history_qos.len() > 2 {
             self.history_qos.remove(0);
         }
         self.glb_state.update(&qoss);
         
+        println!("qoss: {:?}", qoss.clone());
+
         if self.ctl_state == CtlState::Normal {
             let solver = algorithm_selection(&self.glb_state);
             match solver {
@@ -92,9 +92,9 @@ impl Controller {
                     let (controls, ctl_state, ctl_task) = solver.control(qoss, &self.glb_state);
                     self.ctl_state = ctl_state;
                     self.ctl_task = ctl_task;
-                    hash_map_to_py_dict(controls)
+                    controls
                 },
-                None => hash_map_to_py_dict(HashMap::new()),
+                None => HashMap::new(),
             }
         }
         else {
@@ -102,18 +102,49 @@ impl Controller {
                 let solver = BackSwitchSolver::new();
                 let (controls, ctl_state, _) = solver.control(&self.history_qos, self.ctl_task.clone().unwrap());
                 self.ctl_state = ctl_state;
-                hash_map_to_py_dict(controls)
+                controls
             }
             else {
-                hash_map_to_py_dict(HashMap::new())
+                HashMap::new()
             }
         }
     }
 }
 
+#[pyfunction]
+fn optimize( base_info: HashMap<String, StaticValue>, target_ips: HashMap<String, (String, u16)>, name2ipc: HashMap<String, String>  ){
+    print!("target_ips: {:?}", target_ips.clone());
+    print!("name2ipc: {:?}", name2ipc.clone());
+    let ipc_manager = api::ipc::IPCManager::new( target_ips, name2ipc );
+
+
+    // Start Control
+    let mut controller = Controller::new();
+    println!("Start Control");
+    for _ in 0..5 {
+        let stats = ipc_manager.qos_collect();
+
+        // Trasform Statistics to QoS, by adding missing value from base_info AND delete the useless value
+        let mut qoss = HashMap::new();
+        for (name, stat) in stats {
+            let qos:Qos = (&stat, base_info.get(&name).unwrap()).into();
+            qoss.insert(name, qos);
+        }
+
+        // Control
+        let controls = controller.control(qoss);
+        println!("controls: {:?}", controls);
+
+        // Apply Control
+        ipc_manager.apply_control(controls);
+
+        std::thread::sleep(std::time::Duration::from_secs(1));
+    }
+
+}
 
 #[pymodule]
 fn solver(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_class::<Controller>()?;
+    m.add_function(wrap_pyfunction!(optimize, m)?)?;
     Ok(())
 }

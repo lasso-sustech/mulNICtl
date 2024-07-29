@@ -1,9 +1,13 @@
 use pyo3::prelude::*;
 use serde::Deserialize;
 
+use crate::api::ipc::Statistics;
+
+use super::static_value::StaticValue;
+
 type Link = (String, String);
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct Qos {
     pub channel_rtts: Option<Vec<f64>>,
     pub outage_rate : Option<f64>,
@@ -14,6 +18,22 @@ pub struct Qos {
     pub links : Vec<Link>,
     pub channels: Vec<String>,
     pub throttle: f64,
+}
+
+impl From<(&Statistics, &StaticValue)> for Qos {
+    fn from((stats, static_value): (&Statistics, &StaticValue)) -> Self {
+        Qos {
+            channel_rtts: stats.channel_rtts.clone(),
+            outage_rate: stats.outage_rate,
+            ch_outage_rates: stats.ch_outage_rates.clone(),
+            tx_parts: stats.tx_parts.clone(),
+            channel_probabilities: None, // Assuming channel probabilities need to be calculated separately
+            target_rtt: static_value.target_rtt,
+            links: static_value.links.clone(),
+            channels: static_value.channels.clone(),
+            throttle: stats.throttle,
+        }
+    }
 }
 
 impl FromPyObject<'_> for Qos {

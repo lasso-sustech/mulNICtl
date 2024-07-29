@@ -4,7 +4,7 @@ use pyo3::types::{PyDict, PyList};
 use pyo3::ToPyObject;
 
 use crate::state::Color;
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Action {
     pub tx_parts: Option<Vec<f64>>,
     pub throttle: Option<f64>,
