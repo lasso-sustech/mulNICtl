@@ -5,11 +5,14 @@ mod api;
 
 extern crate blas_src;
 
+use core::str;
 use std::collections::HashMap;
-use std::env::Args;
+use std::net::UdpSocket;
+use base64::prelude::*;
+use serde_json::Value;
 use std::str::FromStr;
 
-use clap::{arg, command, Parser};
+use clap::{Parser};
 use cores::back_switch_solver::BackSwitchSolver;
 use cores::green_solver::GRSolver;
 use serde::{Deserialize, Serialize};
@@ -122,11 +125,15 @@ fn optimize(
     base_info: HashMap<String, StaticValue>,
     target_ips: HashMap<String, (String, u16)>,
     name2ipc: HashMap<String, String>,
+    monitor_ip: String,
 ){
     print!("target_ips: {:?}", target_ips.clone());
     print!("name2ipc: {:?}", name2ipc.clone());
     let ipc_manager = api::ipc::IPCManager::new( target_ips, name2ipc );
 
+    // Create Send UDP Socket
+    let mut send_socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+    
 
     // Start Control
     let mut controller = Controller::new();
@@ -142,8 +149,11 @@ fn optimize(
         }
 
         // Control
-        let controls = controller.control(qoss);
-        println!("controls: {:?}", controls);
+        let controls = controller.control(qoss.clone());
+
+        // Send to monitor ips
+        send_socket.send_to(serde_json::to_string(&qoss).unwrap().as_bytes(), monitor_ip.clone()).unwrap();
+        send_socket.send_to(serde_json::to_string(&controls).unwrap().as_bytes(), monitor_ip.clone()).unwrap();
 
         // Apply Control
         ipc_manager.apply_control(controls);
@@ -163,34 +173,48 @@ struct ProgArgs {
     target_ips: String,
     #[clap(short, long)]
     name2ipc: String,
+    #[clap(short, long)]
+    monitor_ip: String,
 }
 
 
+fn from_base64(base64_str: String) -> Result<Value, serde_json::Error> {
+    let decoded = BASE64_STANDARD.decode(base64_str).unwrap();
+    let temp_slice: &[u8]= decoded.as_slice();
+    serde_json::from_str(str::from_utf8(temp_slice).unwrap())
+}
+
 pub fn main() {
     let args: ProgArgs = ProgArgs::parse();
-    let base_info: HashMap<String, StaticValue> = match serde_json::from_str(&args.base_info) {
-        Ok(value) => value,
+    let base_info: HashMap<String, StaticValue> = match {
+        from_base64(args.base_info)
+    } {
+        Ok(value) => serde_json::from_value(value).unwrap(),
         Err(e) => {
             eprintln!("Error parsing base_info: {}", e);
             return;
         }
     };
 
-    let target_ips: HashMap<String, (String, u16)> = match serde_json::from_str(&args.target_ips) {
-        Ok(value) => value,
+    let target_ips: HashMap<String, (String, u16)> = match {
+        from_base64(args.target_ips)
+    } {
+        Ok(value) => serde_json::from_value(value).unwrap(),
         Err(e) => {
             eprintln!("Error parsing target_ips: {}", e);
             return;
         }
     };
 
-    let name2ipc: HashMap<String, String> = match serde_json::from_str(&args.name2ipc) {
-        Ok(value) => value,
+    let name2ipc: HashMap<String, String> = match {
+        from_base64(args.name2ipc)
+    } {
+        Ok(value) => serde_json::from_value(value).unwrap(),
         Err(e) => {
             eprintln!("Error parsing name2ipc: {}", e);
             return;
         }
     };
 
-    optimize(base_info, target_ips, name2ipc);
+    optimize(base_info, target_ips, name2ipc, args.monitor_ip);
 }

@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::api::ipc::Statistics;
 
@@ -6,7 +6,7 @@ use super::static_value::StaticValue;
 
 type Link = (String, String);
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, Serialize)]
 pub struct Qos {
     pub channel_rtts: Option<Vec<f64>>,
     pub outage_rate : Option<f64>,

@@ -1,10 +1,12 @@
 use std::{cmp::max, collections::HashMap};
 
 
+use serde::Serialize;
+
 use crate::qos::Qos;
 
 
-#[derive(PartialEq, Eq, Ord, PartialOrd, Clone, Debug)]
+#[derive(PartialEq, Eq, Ord, PartialOrd, Clone, Debug, Serialize)]
 pub enum Color {
     Green,
     Yellow,

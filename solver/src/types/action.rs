@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
+use serde::Serialize;
+
 use crate::state::Color;
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Action {
     pub tx_parts: Option<Vec<f64>>,
     pub throttle: Option<f64>,
