@@ -42,6 +42,7 @@ class stream:
         self.target_rtt = 0.016 #(s) 
         self.channels   = []
         self.name       = ''
+        self.duration   = [0.0, 1000000.0]
 
     def __str__(self) -> str:
         return json.dumps(self.__dict__, indent=2)
@@ -82,7 +83,11 @@ class stream:
                 json.dump(CONTENT,f, indent=2)
         with open(file_addr, 'r') as f:
             content = json.load(f)
-        content['streams'].append(self.__dict__)
+        target_dict = self.__dict__.copy()
+        print(target_dict)
+        for i in ['channels', 'name']:
+            target_dict.pop(i, None)
+        content['streams'].append(target_dict)
         content['tx_ipaddrs'] = list(set(content['tx_ipaddrs'] + self.tx_ipaddrs()))
         with open(file_addr, 'w') as f:
             json.dump(content, f, indent=2)
@@ -150,7 +155,6 @@ if __name__ == "__main__":
     temp = stream()
     print(args)
     for i in temp.__dict__:
-        print
         if hasattr(args, i):
             temp.__setattr__(i, args.__getattribute__(i))
     temp.write_to_manifest(args.file, args.clear)
