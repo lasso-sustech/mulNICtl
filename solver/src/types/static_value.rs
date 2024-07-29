@@ -1,6 +1,9 @@
+use std::str::FromStr;
+
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
-#[derive(Debug, Default)]
+use serde::{Deserialize, Serialize};
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
 pub struct StaticValue {
     pub npy_file: String,
     pub tos: u8,
@@ -16,6 +19,14 @@ pub struct StaticValue {
     pub duration: [f64; 2],
     pub channels: Vec<String>,
     pub name: String,
+}
+
+impl FromStr for StaticValue {
+    type Err = serde_json::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        serde_json::from_str(s)
+    }
 }
 
 impl FromPyObject<'_> for StaticValue {

@@ -6,10 +6,14 @@ mod api;
 extern crate blas_src;
 
 use std::collections::HashMap;
+use std::env::Args;
+use std::str::FromStr;
 
+use clap::{arg, command, Parser};
 use cores::back_switch_solver::BackSwitchSolver;
 use cores::green_solver::GRSolver;
 use pyo3::{prelude::*, types::PyDict};
+use serde::{Deserialize, Serialize};
 
 use crate::types::{action, qos, state, static_value::StaticValue};
 use crate::state::{State, Color};
@@ -111,8 +115,15 @@ impl Controller {
     }
 }
 
-#[pyfunction]
-fn optimize( base_info: HashMap<String, StaticValue>, target_ips: HashMap<String, (String, u16)>, name2ipc: HashMap<String, String>  ){
+
+// fn optimize( base_info: HashMap<String, StaticValue>, target_ips: HashMap<String, (String, u16)>, name2ipc: HashMap<String, String>  ){
+
+
+fn optimize(
+    base_info: HashMap<String, StaticValue>,
+    target_ips: HashMap<String, (String, u16)>,
+    name2ipc: HashMap<String, String>,
+){
     print!("target_ips: {:?}", target_ips.clone());
     print!("name2ipc: {:?}", name2ipc.clone());
     let ipc_manager = api::ipc::IPCManager::new( target_ips, name2ipc );
@@ -121,7 +132,7 @@ fn optimize( base_info: HashMap<String, StaticValue>, target_ips: HashMap<String
     // Start Control
     let mut controller = Controller::new();
     println!("Start Control");
-    for _ in 0..5 {
+    for _ in 0..10 {
         let stats = ipc_manager.qos_collect();
 
         // Trasform Statistics to QoS, by adding missing value from base_info AND delete the useless value
@@ -143,8 +154,44 @@ fn optimize( base_info: HashMap<String, StaticValue>, target_ips: HashMap<String
 
 }
 
-#[pymodule]
-fn solver(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(optimize, m)?)?;
-    Ok(())
+
+#[derive(Serialize, Deserialize, Debug, Parser)]
+#[clap(author, version, about, long_about=None)]
+struct ProgArgs {
+    #[clap(short, long)]
+    base_info: String,
+    #[clap(short, long)]
+    target_ips: String,
+    #[clap(short, long)]
+    name2ipc: String,
+}
+
+
+pub fn main() {
+    let args: ProgArgs = ProgArgs::parse();
+    let base_info: HashMap<String, StaticValue> = match serde_json::from_str(&args.base_info) {
+        Ok(value) => value,
+        Err(e) => {
+            eprintln!("Error parsing base_info: {}", e);
+            return;
+        }
+    };
+
+    let target_ips: HashMap<String, (String, u16)> = match serde_json::from_str(&args.target_ips) {
+        Ok(value) => value,
+        Err(e) => {
+            eprintln!("Error parsing target_ips: {}", e);
+            return;
+        }
+    };
+
+    let name2ipc: HashMap<String, String> = match serde_json::from_str(&args.name2ipc) {
+        Ok(value) => value,
+        Err(e) => {
+            eprintln!("Error parsing name2ipc: {}", e);
+            return;
+        }
+    };
+
+    optimize(base_info, target_ips, name2ipc);
 }

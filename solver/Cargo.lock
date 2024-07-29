@@ -2314,6 +2314,7 @@ name = "solver"
 version = "0.1.0"
 dependencies = [
  "blas-src",
+ "clap 4.5.10",
  "maturin",
  "ndarray",
  "ndarray-linalg",
