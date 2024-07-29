@@ -12,13 +12,12 @@ use std::str::FromStr;
 use clap::{arg, command, Parser};
 use cores::back_switch_solver::BackSwitchSolver;
 use cores::green_solver::GRSolver;
-use pyo3::{prelude::*, types::PyDict};
 use serde::{Deserialize, Serialize};
 
 use crate::types::{action, qos, state, static_value::StaticValue};
 use crate::state::{State, Color};
 use crate::qos::Qos;
-use crate::action::{hash_map_to_py_dict, Action};
+use crate::action::Action;
 use crate::cores::green_solver::GSolver;
 use crate::cores::file_restrict::FileSolver;
 

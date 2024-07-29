@@ -1,6 +1,5 @@
 use std::{cmp::max, collections::HashMap};
 
-use pyo3::ToPyObject;
 
 use crate::qos::Qos;
 
@@ -10,16 +9,6 @@ pub enum Color {
     Green,
     Yellow,
     Red,
-}
-
-impl ToPyObject for Color {
-    fn to_object(&self, py: pyo3::Python) -> pyo3::PyObject {
-        match self {
-            Color::Green => "green".to_object(py),
-            Color::Yellow => "yellow".to_object(py),
-            Color::Red => "red".to_object(py),
-        }
-    }
 }
 
 #[derive(Clone)]
