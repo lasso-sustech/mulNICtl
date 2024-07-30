@@ -8,6 +8,7 @@ type Link = (String, String);
 
 #[derive(Deserialize, Clone, Debug, Serialize)]
 pub struct Qos {
+    pub rtt: Option<f64>,
     pub channel_rtts: Option<Vec<f64>>,
     pub outage_rate : Option<f64>,
     pub ch_outage_rates: Option<Vec<f64>>,
@@ -22,6 +23,7 @@ pub struct Qos {
 impl From<(&Statistics, &StaticValue)> for Qos {
     fn from((stats, static_value): (&Statistics, &StaticValue)) -> Self {
         Qos {
+            rtt: stats.rtt,
             channel_rtts: stats.channel_rtts.clone(),
             outage_rate: stats.outage_rate,
             ch_outage_rates: stats.ch_outage_rates.clone(),
