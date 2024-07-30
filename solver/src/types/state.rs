@@ -25,15 +25,14 @@ impl State{
         }
     }
 
-    fn color(rtt: f64, target_rtt: f64, outage_rate: f64) -> Color{
-        if rtt < target_rtt {
-            if outage_rate < 0.1 {
-                Color::Green
-            }
-            else{
-                Color::Yellow
-            }
-        }else {
+    fn color(rtt: f64, target_rtt: f64, overall_rtt: f64) -> Color{
+        if overall_rtt < target_rtt {
+            Color::Green
+        }
+        else if rtt > overall_rtt * 0.8 {
+            Color::Yellow
+        }
+        else {
             Color::Red
         }
     }
@@ -43,9 +42,9 @@ impl State{
         let mut color_map: HashMap<String, Color> = HashMap::new();
 
         for qos in qoss.values() {
-            if let (Some(channel_rtts), Some(ch_outage_rates)) = (&qos.channel_rtts, &qos.ch_outage_rates) {
+            if let (Some(channel_rtts), Some(ch_outage_rates), Some(rtt)) = (&qos.channel_rtts, &qos.ch_outage_rates, &qos.rtt) {
                 for (channel, (channel_rtt, outage_rate)) in qos.channels.iter().zip(channel_rtts.iter().zip(ch_outage_rates.iter())) {
-                    let color = State::color(*channel_rtt, qos.target_rtt, *outage_rate);
+                    let color = State::color(*channel_rtt, qos.target_rtt, *rtt);
                     color_map.entry(channel.clone())
                         .and_modify(|existing_color| *existing_color = max(existing_color.clone(), color.clone()))
                         .or_insert(color);
