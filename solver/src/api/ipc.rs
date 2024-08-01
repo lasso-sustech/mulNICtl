@@ -108,7 +108,7 @@ impl IPCController {
     }
 
     fn ipc_communicate(&self, content: &Value) -> Value {
-        let mut buf = [0 as u8; 1024];
+        let mut buf = [0 as u8; 4048];
         self.send_cmd(content);
         
         match self.sock.recv_from(&mut buf) {

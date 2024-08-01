@@ -29,7 +29,7 @@ impl State{
         if overall_rtt < target_rtt {
             Color::Green
         }
-        else if rtt > overall_rtt * 0.8 {
+        else if rtt > overall_rtt * 0.8 && rtt < target_rtt {
             Color::Yellow
         }
         else {

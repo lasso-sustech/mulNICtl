@@ -45,13 +45,13 @@ fn algorithm_selection(glb_state: &State) -> Option<Box<dyn DecSolver>>{
         [Color::Yellow] => None,
         [Color::Red]    => Some( Box::new(FileSolver {step_size: 10.0}) ),
 
-        [Color::Green, Color::Green]    => Some( Box::new( GSolver { backward_threshold: 0.8, is_all_balance: false, throttle_step_size: 10.0 }) ),
+        [Color::Green, Color::Green]    => Some( Box::new( GSolver { backward_threshold: 0.8, is_all_balance: false, throttle_step_size: 10.0 } ) ),
         [Color::Yellow, Color::Yellow]  => None,
-        [Color::Red, Color::Red]        => Some( Box::new( FileSolver {step_size: 10.0}) ),
+        [Color::Red, Color::Red]        => Some( Box::new( FileSolver {step_size: 10.0} ) ),
 
-        [Color::Green, Color::Yellow] | [Color::Yellow, Color::Green]   => Some( Box::new(GSolver {backward_threshold: 0.8, is_all_balance: false, throttle_step_size: 10.0}) ),
-        [Color::Green, Color::Red]  | [Color::Red, Color::Green]        => Some( Box::new(GRSolver {backward_threshold: 0.8, is_all_balance: true, throttle_step_size: 10.0}) ),
-        [Color::Yellow, Color::Red] | [Color::Red, Color::Yellow]       => Some( Box::new(GRSolver {backward_threshold: 0.8, is_all_balance: true, throttle_step_size: 10.0}) ),
+        [Color::Green, Color::Yellow] | [Color::Yellow, Color::Green]     => Some( Box::new(GSolver {backward_threshold: 0.8, is_all_balance: false, throttle_step_size: 10.0}) ),
+        [Color::Green, Color::Red]    | [Color::Red, Color::Green]        => Some( Box::new(GRSolver {backward_threshold: 0.8, is_all_balance: true, throttle_step_size: 10.0}) ),
+        [Color::Yellow, Color::Red]   | [Color::Red, Color::Yellow]       => Some( Box::new(GRSolver {backward_threshold: 0.8, is_all_balance: true, throttle_step_size: 10.0}) ),
 
         _ => None,
     }
@@ -132,13 +132,13 @@ fn optimize(
     let ipc_manager = api::ipc::IPCManager::new( target_ips, name2ipc );
 
     // Create Send UDP Socket
-    let mut send_socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+    let send_socket = UdpSocket::bind("0.0.0.0:0").unwrap();
     
 
     // Start Control
     let mut controller = Controller::new();
     println!("Start Control");
-    for _ in 0..10 {
+    for _ in 0..200 {
         let stats = ipc_manager.qos_collect();
 
         // Trasform Statistics to QoS, by adding missing value from base_info AND delete the useless value
@@ -152,8 +152,22 @@ fn optimize(
         let controls = controller.control(qoss.clone());
 
         // Send to monitor ips
-        send_socket.send_to(serde_json::to_string(&qoss).unwrap().as_bytes(), monitor_ip.clone()).unwrap();
-        send_socket.send_to(serde_json::to_string(&controls).unwrap().as_bytes(), monitor_ip.clone()).unwrap();
+        match serde_json::to_string(&qoss) {
+            Ok(value) => {
+                let _ = send_socket.send_to(value.as_bytes(), monitor_ip.clone());
+            },
+            Err(e) => {
+                eprintln!("Error parsing qoss: {}", e);
+            }
+        }
+        match serde_json::to_string(&controls) {
+            Ok(value) => {
+                let _ = send_socket.send_to(value.as_bytes(), monitor_ip.clone());
+            },
+            Err(e) => {
+                eprintln!("Error parsing controls: {}", e);
+            }
+        }
 
         // Apply Control
         ipc_manager.apply_control(controls);
