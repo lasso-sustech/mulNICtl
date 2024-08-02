@@ -12,6 +12,7 @@ STA2 --WIFI-- SoftAP
 PATTERN = re.compile(r'\b\w+\b')
 
 def construct_graph(file_path):
+    links = []
     with open(file_path, 'r') as f:
         lines = f.readlines()
         graph = Graph()
@@ -20,5 +21,6 @@ def construct_graph(file_path):
             if len(line) >= 3:
                 start = line[0]; end = line[-1]
                 link = '_'.join(line[1:-1])
-                graph.ADD_LINK(start, end, link,  '600')
-    return graph
+                link_name = graph.ADD_LINK(start, end, link,  '600')
+                links.append(link_name)
+    return graph, links
