@@ -55,7 +55,7 @@ impl DecSolver for GSolver{
                 .filter_map(|channel| channel_state.color.get(channel).cloned())
                 .collect();
             if qos.channel_rtts.is_some(){
-                let tx_parts = ChannelBalanceSolver::new(self.balance_anyway).control(qos.clone(), channel_state);
+                let tx_parts = ChannelBalanceSolver::new(self.balance_anyway, true).control(qos.clone(), channel_state);
                 (name, Action::new(Some(tx_parts), None, Some(channel_colors)))
             }
             else{
@@ -127,7 +127,7 @@ impl DecSolver for GRSolver{
                 .filter_map(|channel| channel_state.color.get(channel).cloned())
                 .collect();
             if qos.channel_rtts.is_some(){
-                let tx_parts = ChannelBalanceSolver::new(self.balance_anyway).control(qos.clone(), channel_state);
+                let tx_parts = ChannelBalanceSolver::new(self.balance_anyway, false).control(qos.clone(), channel_state);
                 (name, Action::new(Some(tx_parts), None, Some(channel_colors)))
             }
             else{
@@ -152,10 +152,11 @@ pub struct ChannelBalanceSolver {
     epsilon_prob_lower: f64,
     redundency_mode: bool,
     balance_anyway: bool,
+    stick_to_original: bool,
 }
 
 impl ChannelBalanceSolver {
-    fn new(balance_anyway: bool) -> Self {
+    fn new(balance_anyway: bool, stick_to_original: bool) -> Self {
         ChannelBalanceSolver {
             inc_direction: [-1, 1],
             min_step: 0.05,
@@ -164,6 +165,7 @@ impl ChannelBalanceSolver {
             epsilon_prob_lower: 0.01,
             redundency_mode: false,
             balance_anyway,
+            stick_to_original: stick_to_original,
         }
     }
 
@@ -180,7 +182,7 @@ impl ChannelBalanceSolver {
 
 
         if let Some(channel_rtts) = qos.channel_rtts {
-            if !self.balance_anyway && qos.tx_parts.iter().any(|&tx_part| tx_part == 0.0 || tx_part == 1.0) {
+            if self.stick_to_original && qos.tx_parts.iter().any(|&tx_part| tx_part == 0.0 || tx_part == 1.0) {
                 return tx_parts;
             }
 
