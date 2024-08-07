@@ -6,7 +6,7 @@ use crate::{action::Action, qos::Qos, state::State, types::state::Color, CtlRes,
 pub struct GSolver {
     #[warn(dead_code)]
     pub backward_threshold: f64,
-    pub is_all_balance: bool,
+    pub balance_anyway: bool,
     pub throttle_step_size: f64,
 }
 
@@ -15,7 +15,7 @@ impl GSolver {
     pub fn new() -> Self {
         GSolver {
             backward_threshold: 0.8,
-            is_all_balance: false,
+            balance_anyway: false,
             throttle_step_size: 10.0,
         }
     }
@@ -55,7 +55,7 @@ impl DecSolver for GSolver{
                 .filter_map(|channel| channel_state.color.get(channel).cloned())
                 .collect();
             if qos.channel_rtts.is_some(){
-                let tx_parts = ChannelBalanceSolver::new(self.is_all_balance).control(qos.clone(), channel_state);
+                let tx_parts = ChannelBalanceSolver::new(self.balance_anyway).control(qos.clone(), channel_state);
                 (name, Action::new(Some(tx_parts), None, Some(channel_colors)))
             }
             else{
@@ -105,7 +105,7 @@ fn determine_back_switch(qoses: &HashMap<String, Qos>, alpha: f64) -> Option<&St
 pub struct GRSolver {
     #[warn(dead_code)]
     pub backward_threshold: f64,
-    pub is_all_balance: bool,
+    pub balance_anyway: bool,
     pub throttle_step_size: f64,
 }
 
@@ -114,7 +114,7 @@ impl GRSolver {
     pub fn new() -> Self {
         GRSolver {
             backward_threshold: 0.8,
-            is_all_balance: false,
+            balance_anyway: false,
             throttle_step_size: 10.0,
         }
     }
@@ -127,7 +127,7 @@ impl DecSolver for GRSolver{
                 .filter_map(|channel| channel_state.color.get(channel).cloned())
                 .collect();
             if qos.channel_rtts.is_some(){
-                let tx_parts = ChannelBalanceSolver::new(self.is_all_balance).control(qos.clone(), channel_state);
+                let tx_parts = ChannelBalanceSolver::new(self.balance_anyway).control(qos.clone(), channel_state);
                 (name, Action::new(Some(tx_parts), None, Some(channel_colors)))
             }
             else{
@@ -151,11 +151,11 @@ pub struct ChannelBalanceSolver {
     epsilon_prob_upper: f64,
     epsilon_prob_lower: f64,
     redundency_mode: bool,
-    is_all_balance: bool,
+    balance_anyway: bool,
 }
 
 impl ChannelBalanceSolver {
-    fn new(is_all_balance: bool) -> Self {
+    fn new(balance_anyway: bool) -> Self {
         ChannelBalanceSolver {
             inc_direction: [-1, 1],
             min_step: 0.05,
@@ -163,7 +163,7 @@ impl ChannelBalanceSolver {
             epsilon_prob_upper: 0.6,
             epsilon_prob_lower: 0.01,
             redundency_mode: false,
-            is_all_balance: is_all_balance,
+            balance_anyway,
         }
     }
 
@@ -180,7 +180,7 @@ impl ChannelBalanceSolver {
 
 
         if let Some(channel_rtts) = qos.channel_rtts {
-            if !self.is_all_balance && qos.tx_parts.iter().any(|&tx_part| tx_part == 0.0 || tx_part == 1.0) {
+            if !self.balance_anyway && qos.tx_parts.iter().any(|&tx_part| tx_part == 0.0 || tx_part == 1.0) {
                 return tx_parts;
             }
 
@@ -188,7 +188,7 @@ impl ChannelBalanceSolver {
                 let direction = if channel_rtts[0] > channel_rtts[1] { 1 } else { 0 };
 
                 // if the direction is toward yellow or red channel, stop it
-                if channel_state.color.get(&qos.channels[direction]).cloned() == Some(Color::Red) {
+                if !self.balance_anyway && channel_state.color.get(&qos.channels[direction]).cloned() == Some(Color::Red) {
                     return tx_parts;
                 }
 
