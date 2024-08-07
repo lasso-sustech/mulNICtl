@@ -6,12 +6,22 @@
         "install": "install.py",
         "requirements": "requirements.txt",
         "data": "stream-replay/data/*",
-        "src": "stream-replay/src/*",
-        "src/core": "stream-replay/src/core/*",
-        "src/rx": "stream-replay/src/rx/*",
-        "src/tx": "stream-replay/src/tx/*",
-        "src/rx/statistic": "stream-replay/src/rx/statistic/*",
-        "src/tx/statistic": "stream-replay/src/tx/statistic/*",
+        "android": "stream-replay/android/*",
+        "android/src": "stream-replay/android/src/*",
+        "core": "stream-replay/core/*",
+        "core/src": "stream-replay/core/src/*",
+        "rx": "stream-replay/rx/*",
+        "rx/src": "stream-replay/rx/src/*",
+        "rx/src/statistic": "stream-replay/rx/src/statistic/*",
+        "tx": "stream-replay/tx/*",
+        "tx/src": "stream-replay/tx/src/*",
+        "tx/src/statistic": "stream-replay/tx/src/statistic/*",
+        "solver": "solver/*",
+        "solver/src": "solver/src/*",
+        "solver/src/api": "solver/src/api/*",
+        "solver/src/cores": "solver/src/cores/*",
+        "solver/src/tests": "solver/src/tests/*",
+        "solver/src/types": "solver/src/types/*",
         "toml" : "stream-replay/Cargo.toml",
         "tool":"tools/*",
         "util": "util/*",
@@ -99,6 +109,18 @@
             },
             "commands": [
                 "cd tools; python3 tool.py $manifest_name reset $stream_num"
+            ]
+        },
+        "control-info": {
+            "description": "Get control info.",
+            "parameters": {
+                "target-ips": "",
+                "name2ipc": "",
+                "base-info": "",
+                "monitor-ip": ""
+            },
+            "commands": [
+                "cd solver; cargo run -- --target-ips=$target-ips --name2ipc=$name2ipc --base-info=$base-info --monitor-ip=$monitor-ip"
             ]
         },
         "init_stream_para": {
