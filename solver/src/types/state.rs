@@ -26,14 +26,14 @@ impl State{
     }
 
     fn color(rtt: f64, target_rtt: f64, overall_rtt: f64) -> Color{
-        if overall_rtt < target_rtt {
-            Color::Green
-        }
-        else if rtt > overall_rtt * 0.8 && rtt < target_rtt {
+        if rtt > overall_rtt * 0.8 && rtt < target_rtt && overall_rtt > target_rtt {
             Color::Yellow
         }
-        else {
+        else if rtt > target_rtt {
             Color::Red
+        }
+        else {
+            Color::Green
         }
     }
 
