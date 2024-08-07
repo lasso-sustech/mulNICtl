@@ -138,7 +138,7 @@ fn optimize(
     // Start Control
     let mut controller = Controller::new();
     println!("Start Control");
-    for _ in 0..200 {
+    for idx in 0..200 {
         let stats = ipc_manager.qos_collect();
 
         // Trasform Statistics to QoS, by adding missing value from base_info AND delete the useless value
@@ -147,9 +147,6 @@ fn optimize(
             let qos:Qos = (&stat, base_info.get(&name).unwrap()).into();
             qoss.insert(name, qos);
         }
-
-        // Control
-        let controls = controller.control(qoss.clone());
 
         // Send to monitor ips
         match serde_json::to_string(&qoss) {
@@ -160,17 +157,35 @@ fn optimize(
                 eprintln!("Error parsing qoss: {}", e);
             }
         }
-        match serde_json::to_string(&controls) {
-            Ok(value) => {
-                let _ = send_socket.send_to(value.as_bytes(), monitor_ip.clone());
-            },
-            Err(e) => {
-                eprintln!("Error parsing controls: {}", e);
+
+        if idx == 1 {
+            let mut controls = controller.control(qoss.clone());
+            // modify tx_part of controls
+            for (name, control) in controls.iter_mut() {
+                if control.tx_parts.is_some() {
+                    control.tx_parts = vec![1.0, 1.0].into();
+                }
             }
+            ipc_manager.apply_control(controls);
+        }
+        
+        
+        if idx > 30 {
+            // Control
+            let controls = controller.control(qoss.clone());
+            match serde_json::to_string(&controls) {
+                Ok(value) => {
+                    let _ = send_socket.send_to(value.as_bytes(), monitor_ip.clone());
+                },
+                Err(e) => {
+                    eprintln!("Error parsing controls: {}", e);
+                }
+            }
+
+            // Apply Control
+            ipc_manager.apply_control(controls);
         }
 
-        // Apply Control
-        ipc_manager.apply_control(controls);
 
         std::thread::sleep(std::time::Duration::from_secs(1));
     }
