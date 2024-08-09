@@ -18,6 +18,7 @@ pub struct Qos {
     pub links : Vec<Link>,
     pub channels: Vec<String>,
     pub throttle: f64,
+    pub throughput: f64,
 }
 
 impl From<(&Statistics, &StaticValue)> for Qos {
@@ -33,6 +34,7 @@ impl From<(&Statistics, &StaticValue)> for Qos {
             links: static_value.links.clone(),
             channels: static_value.channels.clone(),
             throttle: stats.throttle,
+            throughput: stats.throughput,
         }
     }
 }
