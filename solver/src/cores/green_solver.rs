@@ -81,7 +81,7 @@ fn determine_back_switch(qoses: &HashMap<String, Qos>, alpha: f64) -> Option<&St
             let tx_parts = qos.tx_parts.clone();
             let target_rtt = qos.target_rtt;
         
-            if channel_rtts[0] == 0.0 || channel_rtts[1] == 0.0 {
+            if tx_parts.iter().any(|&tx_part| tx_part == 0.0 || tx_part == 1.0) {
                 continue;
             }
 
