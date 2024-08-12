@@ -11,11 +11,10 @@ pub struct ChannelBalanceSolver {
     epsilon_prob_lower: f64,
     redundency_mode: bool,
     balance_anyway: bool,
-    stick_to_original: bool,
 }
 
 impl ChannelBalanceSolver {
-    pub fn new(balance_anyway: bool, stick_to_original: bool) -> Self {
+    pub fn new(balance_anyway: bool) -> Self {
         ChannelBalanceSolver {
             inc_direction: [-1, 1],
             min_step: 0.05,
@@ -25,7 +24,6 @@ impl ChannelBalanceSolver {
             epsilon_prob_lower: 0.01,
             redundency_mode: false,
             balance_anyway,
-            stick_to_original: stick_to_original,
         }
     }
 
@@ -40,9 +38,9 @@ impl ChannelBalanceSolver {
     fn solve_by_rtt_balance(&mut self, qos: Qos, channel_state: &State, min_rtt: f64) -> Vec<f64> {
         let mut tx_parts = qos.tx_parts.clone();
 
-        if self.stick_to_original && qos.tx_parts.iter().any(|&tx_part| tx_part == 0.0 || tx_part == 1.0) {
-            return tx_parts;
-        }
+        // if self.stick_to_original && qos.tx_parts.iter().any(|&tx_part| tx_part == 0.0 || tx_part == 1.0) {
+        //     return tx_parts;
+        // }
 
         if let Some(channel_rtts) = qos.channel_rtts{
 

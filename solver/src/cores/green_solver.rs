@@ -79,7 +79,7 @@ impl GSolver {
 
                 if qos.channel_rtts.is_some() {
                     let tx_parts =
-                        ChannelBalanceSolver::new(self.balance_anyway, true).control(qos.clone(), channel_state, min_rtt);
+                        ChannelBalanceSolver::new(self.balance_anyway).control(qos.clone(), channel_state, min_rtt);
                     (name.clone(), Action::new(Some(tx_parts), None, Some(channel_colors)))
                 } else {
                     let throttle = (qos.throttle + self.throttle_step_size)
