@@ -4,6 +4,7 @@ pub struct ChannelBalanceSolver {
     inc_direction: [i32; 2],
     min_step: f64,
     epsilon_rtt: f64,
+    scale_factor: f64,
     epsilon_prob_upper: f64,
     epsilon_prob_lower: f64,
     redundency_mode: bool,
@@ -17,6 +18,7 @@ impl ChannelBalanceSolver {
             inc_direction: [-1, 1],
             min_step: 0.05,
             epsilon_rtt: HYPER_PARAMETER.epsilon_rtt,
+            scale_factor: HYPER_PARAMETER.scale_factor,
             epsilon_prob_upper: 0.6,
             epsilon_prob_lower: 0.01,
             redundency_mode: false,
@@ -49,8 +51,9 @@ impl ChannelBalanceSolver {
                 if !self.balance_anyway && channel_state.color.get(&qos.channels[direction]).cloned() == Some(Color::Red) {
                     return tx_parts;
                 }
-
-                tx_parts[0] += if channel_rtts[0] > channel_rtts[1] { -self.min_step } else { self.min_step };
+            
+                let step = self.min_step * self.scale_factor * (channel_rtts[0] - channel_rtts[1]).abs() / self.epsilon_rtt;
+                tx_parts[0] += if channel_rtts[0] > channel_rtts[1] { -step } else { step };
                 tx_parts[0] = format!("{:.2}", tx_parts[0].clamp(0.0, 1.0)).parse().unwrap();
                 tx_parts[1] = tx_parts[0];
             }

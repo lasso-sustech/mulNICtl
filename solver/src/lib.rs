@@ -43,14 +43,13 @@ fn algorithm_selection(glb_state: &State) -> Option<Box<dyn DecSolver>>{
         [Color::Yellow] => None,
         [Color::Red]    => Some( Box::new(FileSolver {throttle_step_size: 10.0}) ),
 
-        [Color::Green, Color::Green]    => Some( Box::new( GSolver {  balance_anyway: false, throttle_step_size: 10.0, is_back_switch: true } ) ),
-        [Color::Yellow, Color::Yellow]  => Some( Box::new( GSolver  { balance_anyway: true, throttle_step_size: -10.0, is_back_switch: false})),
-        [Color::Red, Color::Red]        => Some( Box::new( GSolver  {  balance_anyway: true, throttle_step_size: -10.0,
-            is_back_switch: false})),
+        [Color::Green, Color::Green]    => Some( Box::new( GSolver { balance_anyway: false, throttle_step_size: 10.0,  is_back_switch: true } ) ),
+        [Color::Yellow, Color::Yellow]  => Some( Box::new( GSolver { balance_anyway: true,  throttle_step_size: -10.0, is_back_switch: false} ) ),
+        [Color::Red, Color::Red]        => Some( Box::new( GSolver { balance_anyway: true,  throttle_step_size: -10.0, is_back_switch: false} ) ),
 
-        [Color::Green, Color::Yellow] | [Color::Yellow, Color::Green]     => Some( Box::new(GSolver { balance_anyway: false, throttle_step_size: 10.0, is_back_switch: false}) ),
-        [Color::Green, Color::Red]    | [Color::Red, Color::Green]        => Some( Box::new(GSolver { balance_anyway: false, throttle_step_size: 10.0, is_back_switch: false}) ),
-        [Color::Yellow, Color::Red]   | [Color::Red, Color::Yellow]       => Some( Box::new(GSolver { balance_anyway: true, throttle_step_size: -10.0, is_back_switch: false}) ),
+        [Color::Green, Color::Yellow] | [Color::Yellow, Color::Green]     => Some( Box::new(GSolver { balance_anyway: false, throttle_step_size: 10.0,  is_back_switch: false}) ),
+        [Color::Green, Color::Red]    | [Color::Red, Color::Green]        => Some( Box::new(GSolver { balance_anyway: false, throttle_step_size: 10.0,  is_back_switch: false}) ),
+        [Color::Yellow, Color::Red]   | [Color::Red, Color::Yellow]       => Some( Box::new(GSolver { balance_anyway: true,  throttle_step_size: -10.0, is_back_switch: false}) ),
 
         _ => None,
     }
