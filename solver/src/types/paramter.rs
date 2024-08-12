@@ -9,6 +9,8 @@ pub struct HyperParameter<'a> {
     pub wait_slots: usize,
     pub maximum_his_len: usize,
     pub ports_tobe_pop: [&'a str; 3],
+    pub running_duration: usize,
+    pub ctl_time: usize
 }
 
 pub(crate) static HYPER_PARAMETER: HyperParameter = {
@@ -25,5 +27,7 @@ pub(crate) static HYPER_PARAMETER: HyperParameter = {
         wait_slots: 5,
         maximum_his_len: 10,
         ports_tobe_pop: ["6209@192", "6210@192", "6211@192"],
+        running_duration: 200,
+        ctl_time: 100,
     }
 };

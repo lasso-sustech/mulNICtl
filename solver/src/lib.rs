@@ -131,7 +131,7 @@ fn optimize(
     // Start Control
     let mut controller = Controller::new();
     println!("Start Control");
-    for idx in 0..200 {
+    for idx in 0..HYPER_PARAMETER.running_duration {
         let stats = ipc_manager.qos_collect();
 
         // Trasform Statistics to QoS, by adding missing value from base_info AND delete the useless value
@@ -155,7 +155,7 @@ fn optimize(
             qoss.remove(name);
         }
 
-        if idx == 1 {
+        if idx == 0 {
             let mut controls = controller.control(qoss.clone());
             // modify tx_part of controls
             for (_, control) in controls.iter_mut() {
@@ -167,7 +167,7 @@ fn optimize(
         }
         
         
-        if idx > 30 {
+        if idx > HYPER_PARAMETER.ctl_time {
             // Control
             let controls = controller.control(qoss.clone());
             match serde_json::to_string(&controls) {
