@@ -10,12 +10,10 @@ use std::collections::HashMap;
 use std::net::UdpSocket;
 use base64::prelude::*;
 use serde_json::Value;
-
 use clap::Parser;
-use cores::back_switch_solver::BackSwitchSolver;
-use cores::green_solver::GRSolver;
 use serde::{Deserialize, Serialize};
 
+use crate::cores::back_switch_solver::BackSwitchSolver;
 use crate::types::{action, qos, state, static_value::StaticValue};
 use crate::state::{State, Color};
 use crate::qos::Qos;
@@ -25,11 +23,12 @@ use crate::cores::file_restrict::FileSolver;
 
 type HisQos = Vec<HashMap<String, Qos>>;
 type CtlRes = (HashMap<String, Action>, CtlState, Option<String>);
+
 trait DecSolver {
-    fn control(&self, qoses: HashMap<String, Qos>, channel_state: &State) -> CtlRes;
+    fn control(&self, qoses: &HashMap<String, Qos>, channel_state: &State) -> CtlRes;
 }
 trait CenSolver {
-    fn control(&self, qoses: &HisQos, ctl_task: String) -> CtlRes;
+    fn control(&self, qoses: &HisQos, ctl_task: &String) -> CtlRes;
 }
 
 fn algorithm_selection(glb_state: &State) -> Option<Box<dyn DecSolver>>{
@@ -44,13 +43,14 @@ fn algorithm_selection(glb_state: &State) -> Option<Box<dyn DecSolver>>{
         [Color::Yellow] => None,
         [Color::Red]    => Some( Box::new(FileSolver {throttle_step_size: 10.0}) ),
 
-        [Color::Green, Color::Green]    => Some( Box::new( GSolver {  balance_anyway: false, throttle_step_size: 10.0 } ) ),
-        [Color::Yellow, Color::Yellow]  => Some( Box::new( GRSolver  { balance_anyway: true, throttle_step_size: -10.0})),
-        [Color::Red, Color::Red]        => Some( Box::new( GRSolver  {  balance_anyway: true, throttle_step_size: -10.0})),
+        [Color::Green, Color::Green]    => Some( Box::new( GSolver {  balance_anyway: false, throttle_step_size: 10.0, is_back_switch: true } ) ),
+        [Color::Yellow, Color::Yellow]  => Some( Box::new( GSolver  { balance_anyway: true, throttle_step_size: -10.0, is_back_switch: false})),
+        [Color::Red, Color::Red]        => Some( Box::new( GSolver  {  balance_anyway: true, throttle_step_size: -10.0,
+            is_back_switch: false})),
 
-        [Color::Green, Color::Yellow] | [Color::Yellow, Color::Green]     => Some( Box::new(GRSolver { balance_anyway: false, throttle_step_size: 10.0}) ),
-        [Color::Green, Color::Red]    | [Color::Red, Color::Green]        => Some( Box::new(GRSolver { balance_anyway: false, throttle_step_size: 10.0}) ),
-        [Color::Yellow, Color::Red]   | [Color::Red, Color::Yellow]       => Some( Box::new(GRSolver { balance_anyway: true, throttle_step_size: -10.0}) ),
+        [Color::Green, Color::Yellow] | [Color::Yellow, Color::Green]     => Some( Box::new(GSolver { balance_anyway: false, throttle_step_size: 10.0, is_back_switch: false}) ),
+        [Color::Green, Color::Red]    | [Color::Red, Color::Green]        => Some( Box::new(GSolver { balance_anyway: false, throttle_step_size: 10.0, is_back_switch: false}) ),
+        [Color::Yellow, Color::Red]   | [Color::Red, Color::Yellow]       => Some( Box::new(GSolver { balance_anyway: true, throttle_step_size: -10.0, is_back_switch: false}) ),
 
         _ => None,
     }
@@ -87,13 +87,13 @@ impl Controller {
         }
         self.glb_state.update(&qoss);
         
-        println!("qoss: {:?}", qoss.clone());
+        println!("qoss: {:?}", qoss);
 
         if self.ctl_state == CtlState::Normal {
             let solver = algorithm_selection(&self.glb_state);
             match solver {
                 Some(solver) => {
-                    let (controls, ctl_state, ctl_task) = solver.control(qoss, &self.glb_state);
+                    let (controls, ctl_state, ctl_task) = solver.control(&qoss, &self.glb_state);
                     self.ctl_state = ctl_state;
                     self.ctl_task = ctl_task;
                     controls
@@ -104,7 +104,7 @@ impl Controller {
         else {
             if self.ctl_state == CtlState::BackSwitch {
                 let solver = BackSwitchSolver::new();
-                let (controls, ctl_state, _) = solver.control(&self.history_qos, self.ctl_task.clone().unwrap());
+                let (controls, ctl_state, _) = solver.control(&self.history_qos, self.ctl_task.as_ref().unwrap());
                 self.ctl_state = ctl_state;
                 controls
             }

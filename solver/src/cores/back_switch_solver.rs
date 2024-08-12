@@ -18,10 +18,10 @@ impl BackSwitchSolver {
 }
 
 impl CenSolver for BackSwitchSolver {
-    fn control(&self, qoses: &HisQos, ctl_task: String) -> CtlRes {
+    fn control(&self, qoses: &HisQos, ctl_task: &String) -> CtlRes {
         // Appropriate for the back switch control
-        let current_qos = qoses[qoses.len() - 1].get(&ctl_task).unwrap();
-        let past_qos = qoses[qoses.len() - 2].get(&ctl_task).unwrap();
+        let current_qos = qoses[qoses.len() - 1].get(ctl_task).unwrap();
+        let past_qos = qoses[qoses.len() - 2].get(ctl_task).unwrap();
 
         let reg_vec = transform_qos_to_xy((&[past_qos, current_qos]).to_vec());
         let target_x = [1.0, 0.0];
@@ -52,7 +52,7 @@ impl CenSolver for BackSwitchSolver {
             [past_qos.tx_parts[0], past_qos.tx_parts[1]]
         };
 
-        controls.insert(ctl_task, Action::new(Some(tx_parts.to_vec()), None, None));
+        controls.insert(ctl_task.clone(), Action::new(Some(tx_parts.to_vec()), None, None));
         (controls, CtlState::Normal, None)
 
     }

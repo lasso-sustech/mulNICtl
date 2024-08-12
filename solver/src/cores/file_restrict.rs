@@ -7,7 +7,7 @@ pub struct FileSolver {
 }
 
 impl DecSolver for FileSolver {
-    fn control(&self, qoses: HashMap<String, Qos>, channel_state: &State) -> CtlRes {
+    fn control(&self, qoses: &HashMap<String, Qos>, channel_state: &State) -> CtlRes {
         let controls = qoses.into_iter().map(|(name, qos)| {
             let channel_colors: Vec<Color> = qos.channels.iter()
             .filter_map(|channel| channel_state.color.get(channel).cloned())
@@ -17,10 +17,10 @@ impl DecSolver for FileSolver {
                 let throttle = (qos.throttle - self.throttle_step_size).clamp(HYPER_PARAMETER.throttle_low, HYPER_PARAMETER.throttle_high);
                 println!("step_size: {}", self.throttle_step_size);
                 
-                (name, Action::new(None, Some(throttle), Some(channel_colors)))
+                (name.clone(), Action::new(None, Some(throttle), Some(channel_colors)))
             }
             else{
-                (name, Action::new(None, None, Some(channel_colors)))
+                (name.clone(), Action::new(None, None, Some(channel_colors)))
             }
         }).collect();
         (controls, CtlState::Normal ,None)
