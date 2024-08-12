@@ -401,6 +401,19 @@ def fileTransfer(graph, target_ip, output_folder, file_name, file_link_name):
             conn.batch(sender, "send_file", {"target_ip": target_ip, "file_name": file_name}) #"../stream-replay/logs/rtt-*.txt"
             conn.executor.wait(0.5).apply()
             return None
+        
+def RxfileTransfer(graph, target_ip, output_folder, file_name, file_link_name):
+    conn = Connector()
+    import threading
+    from tools.file_rx import receiver
+    port = 15555
+    threading.Thread(target=receiver, args=(target_ip, port, output_folder,)).start()
+    for device_name, links in graph.graph.items():
+        for link_name, streams in links.items():
+            sender = LINK_NAME_TO_RX_NAME(file_link_name)
+            conn.batch(sender, "send_file", {"target_ip": target_ip, "file_name": file_name}) #"../stream-replay/logs/rtt-*.txt"
+            conn.executor.wait(0.5).apply()
+            return None
 
 def read_rtt(graph) -> List[dataStruct]:
     

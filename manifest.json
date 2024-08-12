@@ -193,7 +193,7 @@
                 "ipc-port": 11112
             },
             "commands": [
-                "(cd stream-replay; ./target/release/stream-replay data/$manifest_name $duration --ipc-port $ipc-port)"
+                "(cd stream-replay; ./target/release/stream-replay-tx data/$manifest_name $duration --ipc-port $ipc-port)"
             ]
         },
         "run-replay-client_trace": {
@@ -205,7 +205,7 @@
                 "ipc-port": 11112
             },
             "commands": [
-                "(cd stream-replay; RUST_LOG=trace ./target/release/stream-replay data/$manifest_name $duration --ipc-port $ipc-port)"
+                "(cd stream-replay; RUST_LOG=trace ./target/release/stream-replay-tx data/$manifest_name $duration --ipc-port $ipc-port)"
             ]
         },
         "run-replay-client-Windows": {
