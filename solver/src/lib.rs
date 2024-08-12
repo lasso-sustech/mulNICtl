@@ -151,6 +151,10 @@ fn optimize(
             }
         }
 
+        for name in HYPER_PARAMETER.ports_tobe_pop{
+            qoss.remove(name);
+        }
+
         if idx == 1 {
             let mut controls = controller.control(qoss.clone());
             // modify tx_part of controls
