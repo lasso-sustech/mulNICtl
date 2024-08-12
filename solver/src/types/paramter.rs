@@ -11,19 +11,19 @@ pub struct HyperParameter<'a> {
     pub ports_tobe_pop: [&'a str; 3],
 }
 
-pub(crate) static HYPER_PARAMETER: HyperParameter = HyperParameter {
-    throttle_low: 100.0,
-    throttle_high: 300.0,
-    backward_threshold: 0.8,
-    epsilon_rtt: 0.002,
-    scale_factor: 1.0,
-    degration_threshold: 1.2,
-    degration_tx_part_threshold: 0.8,
-    wait_slots: 5,
-    maximum_his_len: 10,
-    ports_tobe_pop: [
-        "6209@192",
-        "6210@192",
-        "6211@192",
-    ],
+pub(crate) static HYPER_PARAMETER: HyperParameter = {
+    let throttle_high = 300.0;
+    let throttle_low = throttle_high * 0.7;
+    HyperParameter {
+        throttle_low,
+        throttle_high,
+        backward_threshold: 0.8,
+        epsilon_rtt: 0.002,
+        scale_factor: 1.0,
+        degration_threshold: 1.2,
+        degration_tx_part_threshold: 0.8,
+        wait_slots: 5,
+        maximum_his_len: 10,
+        ports_tobe_pop: ["6209@192", "6210@192", "6211@192"],
+    }
 };
