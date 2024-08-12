@@ -24,7 +24,7 @@ impl GSolver {
 impl DecSolver for GSolver{
     fn control(&self, qoses: HashMap<String, Qos>, channel_state: &State) -> CtlRes {
 
-        if let Some(back_switch_name) = determine_back_switch(&qoses, 0.8){
+        if let Some(back_switch_name) = determine_back_switch(&qoses, self.backward_threshold){
             let mut controls: HashMap<String, Action> = HashMap::new();
 
             if let Some(qos) = qoses.get(back_switch_name) {
@@ -34,7 +34,7 @@ impl DecSolver for GSolver{
                 
                 
                 // add default offset to tx_parts
-                let tx_parts = if qos.tx_parts[0] + 0.1 <= 1.0 {
+                let tx_parts = if qos.tx_parts[0] + 0.1 < 1.0 {
                     qos.tx_parts.clone().into_iter().map(|x| x + 0.1).collect()
                 }
                 else{
@@ -79,6 +79,7 @@ fn determine_back_switch(qoses: &HashMap<String, Qos>, alpha: f64) -> Option<&St
     for (name, qos) in qoses {
         if let Some(channel_rtts) = qos.channel_rtts.clone() {
             let tx_parts = qos.tx_parts.clone();
+            let tx_parts = vec![tx_parts[0], 1.0 - tx_parts[1]];
             let target_rtt = qos.target_rtt;
         
             if tx_parts.iter().any(|&tx_part| tx_part == 0.0 || tx_part == 1.0) {
