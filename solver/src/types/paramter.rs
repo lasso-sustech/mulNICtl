@@ -4,6 +4,8 @@ pub struct HyperParameter {
     pub backward_threshold: f64,
     pub epsilon_rtt: f64,
     pub scale_factor: f64,
+    pub degration_threshold: f64,
+    pub degration_tx_part_threshold: f64,
 }
 
 pub(crate) static HYPER_PARAMETER: HyperParameter = HyperParameter {
@@ -12,4 +14,6 @@ pub(crate) static HYPER_PARAMETER: HyperParameter = HyperParameter {
     backward_threshold: 0.8,
     epsilon_rtt: 0.002,
     scale_factor: 1.0,
+    degration_threshold: 1.2,
+    degration_tx_part_threshold: 0.8,
 };

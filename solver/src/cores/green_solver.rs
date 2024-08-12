@@ -80,6 +80,7 @@ impl GSolver {
         (controls, CtlState::Normal, None)
     }
 }
+
 impl DecSolver for GSolver{
     fn control(&self, qoses: &HashMap<String, Qos>, channel_state: &State) -> CtlRes {
         let back_switch_name = match self.is_back_switch {

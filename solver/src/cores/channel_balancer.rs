@@ -1,5 +1,7 @@
 use crate::types::{paramter::HYPER_PARAMETER, qos::Qos, state::{Color, State}};
 
+use super::degration_checker::check_degration;
+
 pub struct ChannelBalanceSolver {
     inc_direction: [i32; 2],
     min_step: f64,
@@ -38,8 +40,12 @@ impl ChannelBalanceSolver {
     fn solve_by_rtt_balance(&mut self, qos: Qos, channel_state: &State) -> Vec<f64> {
         let mut tx_parts = qos.tx_parts.clone();
 
+        if let (Some(channel_rtts), Some(rtt)) = (qos.channel_rtts, qos.rtt) {
 
-        if let Some(channel_rtts) = qos.channel_rtts {
+            if check_degration(&channel_rtts, &tx_parts, rtt){
+                return vec![1.0, 1.0];
+            }
+
             if self.stick_to_original && qos.tx_parts.iter().any(|&tx_part| tx_part == 0.0 || tx_part == 1.0) {
                 return tx_parts;
             }
