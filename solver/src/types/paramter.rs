@@ -6,6 +6,8 @@ pub struct HyperParameter {
     pub scale_factor: f64,
     pub degration_threshold: f64,
     pub degration_tx_part_threshold: f64,
+    pub wait_slots: usize,
+    pub maximum_his_len: usize,
 }
 
 pub(crate) static HYPER_PARAMETER: HyperParameter = HyperParameter {
@@ -16,4 +18,6 @@ pub(crate) static HYPER_PARAMETER: HyperParameter = HyperParameter {
     scale_factor: 1.0,
     degration_threshold: 1.2,
     degration_tx_part_threshold: 0.8,
+    wait_slots: 5,
+    maximum_his_len: 10
 };

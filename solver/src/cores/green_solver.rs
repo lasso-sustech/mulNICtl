@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use crate::HisQos;
 use crate::{action::Action, qos::Qos, state::State, types::state::Color, CtlRes, CtlState, DecSolver};
 use crate::types::paramter::HYPER_PARAMETER;
 use crate::cores::channel_balancer::ChannelBalanceSolver;
@@ -55,6 +56,7 @@ impl GSolver {
         &self,
         qoses: &HashMap<String, Qos>,
         channel_state: &State,
+        his_qoses: &HisQos,
     ) -> CtlRes {
         let controls = qoses
             .iter()
@@ -64,10 +66,20 @@ impl GSolver {
                     .iter()
                     .filter_map(|channel| channel_state.color.get(channel).cloned())
                     .collect();
-                
+
+                let len = his_qoses.len();
+                let start = if len >= 5 { len - 5 } else { 0 };
+
+                let min_rtt =  his_qoses[start..] 
+                .iter()
+                .filter_map(|qos_map| qos_map.get(name)) 
+                .filter_map(|qos| qos.rtt) 
+                .min_by(|a, b| a.partial_cmp(b).unwrap())
+                .unwrap_or(0.0); // Compute the minimum RTT.
+
                 if qos.channel_rtts.is_some() {
                     let tx_parts =
-                        ChannelBalanceSolver::new(self.balance_anyway, true).control(qos.clone(), channel_state);
+                        ChannelBalanceSolver::new(self.balance_anyway, true).control(qos.clone(), channel_state, min_rtt);
                     (name.clone(), Action::new(Some(tx_parts), None, Some(channel_colors)))
                 } else {
                     let throttle = (qos.throttle + self.throttle_step_size)
@@ -82,9 +94,10 @@ impl GSolver {
 }
 
 impl DecSolver for GSolver{
-    fn control(&self, qoses: &HashMap<String, Qos>, channel_state: &State) -> CtlRes {
+    fn control(&self, his_qoses: &HisQos, channel_state: &State) -> CtlRes {
+        let qoses = &his_qoses[0];
         let back_switch_name = match self.is_back_switch {
-            true => determine_back_switch(&qoses, HYPER_PARAMETER.backward_threshold),
+            true => determine_back_switch(qoses, HYPER_PARAMETER.backward_threshold),
             false => None,
         };
         
@@ -92,9 +105,8 @@ impl DecSolver for GSolver{
             self.handle_back_switch(back_switch_name.clone(), qoses, channel_state)
         }
         else{
-            self.handle_normal_switch(qoses, channel_state)
+            self.handle_normal_switch(qoses, channel_state, his_qoses)
         }
-
     }
 }
 

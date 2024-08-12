@@ -12,6 +12,7 @@ use base64::prelude::*;
 use serde_json::Value;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
+use types::paramter::HYPER_PARAMETER;
 
 use crate::cores::back_switch_solver::BackSwitchSolver;
 use crate::types::{action, qos, state, static_value::StaticValue};
@@ -25,7 +26,7 @@ type HisQos = Vec<HashMap<String, Qos>>;
 type CtlRes = (HashMap<String, Action>, CtlState, Option<String>);
 
 trait DecSolver {
-    fn control(&self, qoses: &HashMap<String, Qos>, channel_state: &State) -> CtlRes;
+    fn control(&self, qoses: &HisQos, channel_state: &State) -> CtlRes;
 }
 trait CenSolver {
     fn control(&self, qoses: &HisQos, ctl_task: &String) -> CtlRes;
@@ -80,19 +81,18 @@ impl Controller {
     }
 
     pub fn control(&mut self, qoss: HashMap<String, Qos>) -> HashMap<String, Action>{
-        self.history_qos.push(qoss.clone());
-        if self.history_qos.len() > 2 {
+        println!("qoss: {:?}", qoss);
+        self.glb_state.update(&qoss);
+        self.history_qos.push(qoss);
+        if self.history_qos.len() > HYPER_PARAMETER.maximum_his_len {
             self.history_qos.remove(0);
         }
-        self.glb_state.update(&qoss);
         
-        println!("qoss: {:?}", qoss);
-
         if self.ctl_state == CtlState::Normal {
             let solver = algorithm_selection(&self.glb_state);
             match solver {
                 Some(solver) => {
-                    let (controls, ctl_state, ctl_task) = solver.control(&qoss, &self.glb_state);
+                    let (controls, ctl_state, ctl_task) = solver.control(&self.history_qos, &self.glb_state);
                     self.ctl_state = ctl_state;
                     self.ctl_task = ctl_task;
                     controls

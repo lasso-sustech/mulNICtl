@@ -1,13 +1,12 @@
-use std::collections::HashMap;
-
-use crate::{action::Action, qos::Qos, state::State, types::{paramter::HYPER_PARAMETER, state::Color}, CtlRes, CtlState, DecSolver};
+use crate::{action::Action, state::State, types::{paramter::HYPER_PARAMETER, state::Color}, CtlRes, CtlState, DecSolver, HisQos};
 
 pub struct FileSolver {
     pub throttle_step_size: f64,
 }
 
 impl DecSolver for FileSolver {
-    fn control(&self, qoses: &HashMap<String, Qos>, channel_state: &State) -> CtlRes {
+    fn control(&self, his_qoses: &HisQos, channel_state: &State) -> CtlRes {
+        let qoses = &his_qoses[0];
         let controls = qoses.into_iter().map(|(name, qos)| {
             let channel_colors: Vec<Color> = qos.channels.iter()
             .filter_map(|channel| channel_state.color.get(channel).cloned())

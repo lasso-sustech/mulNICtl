@@ -29,25 +29,25 @@ impl ChannelBalanceSolver {
         }
     }
 
-    pub fn control(&mut self, qos: Qos, channel_state: &State) -> Vec<f64> {
+    pub fn control(&mut self, qos: Qos, channel_state: &State, min_rtt: f64) -> Vec<f64> {
         if self.redundency_mode {
             self.redundency_balance(qos)
         } else {
-            self.solve_by_rtt_balance(qos, channel_state)
+            self.solve_by_rtt_balance(qos, channel_state, min_rtt)
         }
     }
 
-    fn solve_by_rtt_balance(&mut self, qos: Qos, channel_state: &State) -> Vec<f64> {
+    fn solve_by_rtt_balance(&mut self, qos: Qos, channel_state: &State, min_rtt: f64) -> Vec<f64> {
         let mut tx_parts = qos.tx_parts.clone();
 
-        if let (Some(channel_rtts), Some(rtt)) = (qos.channel_rtts, qos.rtt) {
+        if self.stick_to_original && qos.tx_parts.iter().any(|&tx_part| tx_part == 0.0 || tx_part == 1.0) {
+            return tx_parts;
+        }
 
-            if check_degration(&channel_rtts, &tx_parts, rtt){
+        if let Some(channel_rtts) = qos.channel_rtts{
+
+            if check_degration(&channel_rtts, &tx_parts, min_rtt){
                 return vec![1.0, 1.0];
-            }
-
-            if self.stick_to_original && qos.tx_parts.iter().any(|&tx_part| tx_part == 0.0 || tx_part == 1.0) {
-                return tx_parts;
             }
 
             if (channel_rtts[0] - channel_rtts[1]).abs() > self.epsilon_rtt {
