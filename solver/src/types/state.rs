@@ -42,8 +42,8 @@ impl State{
         let mut color_map: HashMap<String, Color> = HashMap::new();
 
         for qos in qoss.values() {
-            if let (Some(channel_rtts), Some(ch_outage_rates), Some(rtt)) = (&qos.channel_rtts, &qos.ch_outage_rates, &qos.rtt) {
-                for (channel, (channel_rtt, outage_rate)) in qos.channels.iter().zip(channel_rtts.iter().zip(ch_outage_rates.iter())) {
+            if let (Some(channel_rtts), Some(rtt)) = (&qos.channel_rtts, &qos.rtt) {
+                for (channel, channel_rtt,) in qos.channels.iter().zip(channel_rtts) {
                     let color = State::color(*channel_rtt, qos.target_rtt, *rtt);
                     color_map.entry(channel.clone())
                         .and_modify(|existing_color| *existing_color = max(existing_color.clone(), color.clone()))

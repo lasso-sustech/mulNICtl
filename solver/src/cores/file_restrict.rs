@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{action::Action, qos::Qos, state::State, types::state::Color, CtlRes, CtlState, DecSolver};
+use crate::{action::Action, qos::Qos, state::State, types::{paramter::HYPER_PARAMETER, state::Color}, CtlRes, CtlState, DecSolver};
 
 pub struct FileSolver {
-    pub step_size: f64,
+    pub throttle_step_size: f64,
 }
 
 impl DecSolver for FileSolver {
@@ -14,11 +14,8 @@ impl DecSolver for FileSolver {
             .collect();
 
             if qos.channel_rtts.is_none(){
-                let mut throttle = qos.throttle - self.step_size;
-                if throttle <= 0.0 {
-                    throttle = 1.0;
-                }
-                println!("step_size: {}", self.step_size);
+                let throttle = (qos.throttle - self.throttle_step_size).clamp(HYPER_PARAMETER.throttle_low, HYPER_PARAMETER.throttle_high);
+                println!("step_size: {}", self.throttle_step_size);
                 
                 (name, Action::new(None, Some(throttle), Some(channel_colors)))
             }

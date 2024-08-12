@@ -10,9 +10,8 @@ use std::collections::HashMap;
 use std::net::UdpSocket;
 use base64::prelude::*;
 use serde_json::Value;
-use std::str::FromStr;
 
-use clap::{Parser};
+use clap::Parser;
 use cores::back_switch_solver::BackSwitchSolver;
 use cores::green_solver::GRSolver;
 use serde::{Deserialize, Serialize};
@@ -43,15 +42,15 @@ fn algorithm_selection(glb_state: &State) -> Option<Box<dyn DecSolver>>{
     match color_values.as_slice() {
         [Color::Green]  => None,
         [Color::Yellow] => None,
-        [Color::Red]    => Some( Box::new(FileSolver {step_size: 10.0}) ),
+        [Color::Red]    => Some( Box::new(FileSolver {throttle_step_size: 10.0}) ),
 
-        [Color::Green, Color::Green]    => Some( Box::new( GSolver { backward_threshold: 0.8, balance_anyway: false, throttle_step_size: 10.0 } ) ),
-        [Color::Yellow, Color::Yellow]  => Some( Box::new( GRSolver  {backward_threshold: 0.8, balance_anyway: true, throttle_step_size: -10.0})),
-        [Color::Red, Color::Red]        => Some( Box::new( GRSolver  {backward_threshold: 0.8, balance_anyway: true, throttle_step_size: -10.0})),
+        [Color::Green, Color::Green]    => Some( Box::new( GSolver {  balance_anyway: false, throttle_step_size: 10.0 } ) ),
+        [Color::Yellow, Color::Yellow]  => Some( Box::new( GRSolver  { balance_anyway: true, throttle_step_size: -10.0})),
+        [Color::Red, Color::Red]        => Some( Box::new( GRSolver  {  balance_anyway: true, throttle_step_size: -10.0})),
 
-        [Color::Green, Color::Yellow] | [Color::Yellow, Color::Green]     => Some( Box::new(GRSolver {backward_threshold: 0.8, balance_anyway: false, throttle_step_size: 10.0}) ),
-        [Color::Green, Color::Red]    | [Color::Red, Color::Green]        => Some( Box::new(GRSolver {backward_threshold: 0.8, balance_anyway: false, throttle_step_size: 10.0}) ),
-        [Color::Yellow, Color::Red]   | [Color::Red, Color::Yellow]       => Some( Box::new(GRSolver {backward_threshold: 0.8, balance_anyway: true, throttle_step_size: -10.0}) ),
+        [Color::Green, Color::Yellow] | [Color::Yellow, Color::Green]     => Some( Box::new(GRSolver { balance_anyway: false, throttle_step_size: 10.0}) ),
+        [Color::Green, Color::Red]    | [Color::Red, Color::Green]        => Some( Box::new(GRSolver { balance_anyway: false, throttle_step_size: 10.0}) ),
+        [Color::Yellow, Color::Red]   | [Color::Red, Color::Yellow]       => Some( Box::new(GRSolver { balance_anyway: true, throttle_step_size: -10.0}) ),
 
         _ => None,
     }
@@ -60,7 +59,6 @@ fn algorithm_selection(glb_state: &State) -> Option<Box<dyn DecSolver>>{
 #[derive(Clone, PartialEq, Eq)]
 enum CtlState {
     Normal,
-    PredOpt,
     BackSwitch,
 }
 
@@ -117,10 +115,6 @@ impl Controller {
     }
 }
 
-
-// fn optimize( base_info: HashMap<String, StaticValue>, target_ips: HashMap<String, (String, u16)>, name2ipc: HashMap<String, String>  ){
-
-
 fn optimize(
     base_info: HashMap<String, StaticValue>,
     target_ips: HashMap<String, (String, u16)>,
@@ -161,7 +155,7 @@ fn optimize(
         if idx == 1 {
             let mut controls = controller.control(qoss.clone());
             // modify tx_part of controls
-            for (name, control) in controls.iter_mut() {
+            for (_, control) in controls.iter_mut() {
                 if control.tx_parts.is_some() {
                     control.tx_parts = vec![1.0, 1.0].into();
                 }
@@ -205,7 +199,6 @@ struct ProgArgs {
     #[clap(short, long)]
     monitor_ip: String,
 }
-
 
 fn from_base64(base64_str: String) -> Result<Value, serde_json::Error> {
     let decoded = BASE64_STANDARD.decode(base64_str).unwrap();

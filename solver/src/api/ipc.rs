@@ -52,7 +52,7 @@ impl IPCManager {
 
     pub fn qos_collect(&self) -> HashMap<String, Statistics> {
         let mut res = HashMap::new();
-        for (name, ipc) in self.ipcs.iter() {
+        for (_, ipc) in self.ipcs.iter() {
             let statistics = ipc.statistics();
             for (k, v) in statistics {
                 res.insert(k, v);

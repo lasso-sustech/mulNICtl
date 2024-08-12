@@ -1,11 +1,9 @@
-use std::{collections::HashMap};
-
+use std::collections::HashMap;
 use crate::{action::Action, qos::Qos, state::State, types::state::Color, CtlRes, CtlState, DecSolver};
-
+use crate::types::paramter::HYPER_PARAMETER;
 
 pub struct GSolver {
     #[warn(dead_code)]
-    pub backward_threshold: f64,
     pub balance_anyway: bool,
     pub throttle_step_size: f64,
 }
@@ -14,7 +12,6 @@ pub struct GSolver {
 impl GSolver {
     pub fn new() -> Self {
         GSolver {
-            backward_threshold: 0.8,
             balance_anyway: false,
             throttle_step_size: 10.0,
         }
@@ -24,14 +21,13 @@ impl GSolver {
 impl DecSolver for GSolver{
     fn control(&self, qoses: HashMap<String, Qos>, channel_state: &State) -> CtlRes {
 
-        if let Some(back_switch_name) = determine_back_switch(&qoses, self.backward_threshold){
+        if let Some(back_switch_name) = determine_back_switch(&qoses, HYPER_PARAMETER.backward_threshold){
             let mut controls: HashMap<String, Action> = HashMap::new();
 
             if let Some(qos) = qoses.get(back_switch_name) {
                 let channel_colors: Vec<Color>  = qos.channels.iter()
                     .filter_map(|channel| channel_state.color.get(channel).cloned())
                     .collect();
-                
                 
                 // add default offset to tx_parts
                 let tx_parts = if qos.tx_parts[0] + 0.1 < 1.0 {
@@ -59,12 +55,7 @@ impl DecSolver for GSolver{
                 (name, Action::new(Some(tx_parts), None, Some(channel_colors)))
             }
             else{
-                let mut throttle = qos.throttle + self.throttle_step_size;
-                if throttle <= 0.0 {
-                    throttle = 1.0;
-                } else if throttle >= 300.0 {
-                    throttle = 300.0;
-                }
+                let throttle = (qos.throttle + self.throttle_step_size).clamp(HYPER_PARAMETER.throttle_low, HYPER_PARAMETER.throttle_high);
                 (name, Action::new(None, Some(throttle), Some(channel_colors)))
             }
         }).collect();
@@ -105,7 +96,6 @@ fn determine_back_switch(qoses: &HashMap<String, Qos>, alpha: f64) -> Option<&St
 
 pub struct GRSolver {
     #[warn(dead_code)]
-    pub backward_threshold: f64,
     pub balance_anyway: bool,
     pub throttle_step_size: f64,
 }
@@ -114,7 +104,6 @@ pub struct GRSolver {
 impl GRSolver {
     pub fn new() -> Self {
         GRSolver {
-            backward_threshold: 0.8,
             balance_anyway: false,
             throttle_step_size: 10.0,
         }
@@ -132,12 +121,7 @@ impl DecSolver for GRSolver{
                 (name, Action::new(Some(tx_parts), None, Some(channel_colors)))
             }
             else{
-                let mut throttle = qos.throttle - self.throttle_step_size;
-                if throttle <= 0.0 {
-                    throttle = 1.0;
-                } else if throttle >= 300.0 {
-                    throttle = 300.0;
-                }
+                let throttle = (qos.throttle + self.throttle_step_size).clamp(HYPER_PARAMETER.throttle_low, HYPER_PARAMETER.throttle_high);
                 (name, Action::new(None, Some(throttle), Some(channel_colors)))
             }
         }).collect();
@@ -161,7 +145,7 @@ impl ChannelBalanceSolver {
         ChannelBalanceSolver {
             inc_direction: [-1, 1],
             min_step: 0.05,
-            epsilon_rtt: 0.002,
+            epsilon_rtt: HYPER_PARAMETER.epsilon_rtt,
             epsilon_prob_upper: 0.6,
             epsilon_prob_lower: 0.01,
             redundency_mode: false,
