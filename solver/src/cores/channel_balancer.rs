@@ -27,24 +27,24 @@ impl ChannelBalanceSolver {
         }
     }
 
-    pub fn control(&mut self, qos: Qos, channel_state: &State, min_rtt: f64) -> Vec<f64> {
+    pub fn control(&mut self, qos: Qos, channel_state: &State, not_check_degration: bool) -> Vec<f64> {
         if self.redundency_mode {
             self.redundency_balance(qos)
         } else {
-            self.solve_by_rtt_balance(qos, channel_state, min_rtt)
+            self.solve_by_rtt_balance(qos, channel_state, not_check_degration)
         }
     }
 
-    fn solve_by_rtt_balance(&mut self, qos: Qos, channel_state: &State, min_rtt: f64) -> Vec<f64> {
+    fn solve_by_rtt_balance(&mut self, qos: Qos, channel_state: &State, not_check_degration: bool) -> Vec<f64> {
         let mut tx_parts = qos.tx_parts.clone();
 
         // if self.stick_to_original && qos.tx_parts.iter().any(|&tx_part| tx_part == 0.0 || tx_part == 1.0) {
         //     return tx_parts;
         // }
 
-        if let Some(channel_rtts) = qos.channel_rtts{
+        if let (Some(channel_rtts), Some(rtt)) = (qos.channel_rtts, qos.rtt){
 
-            if check_degration(&channel_rtts, &tx_parts, min_rtt){
+            if !not_check_degration && check_degration(&channel_rtts, &tx_parts, rtt){
                 return vec![1.0, 1.0];
             }
 

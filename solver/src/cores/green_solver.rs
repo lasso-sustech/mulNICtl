@@ -70,16 +70,12 @@ impl GSolver {
                 let len = his_qoses.len();
                 let start = if len >= 5 { len - 5 } else { 0 };
 
-                let min_rtt =  his_qoses[start..] 
-                .iter()
-                .filter_map(|qos_map| qos_map.get(name)) 
-                .filter_map(|qos| qos.rtt) 
-                .min_by(|a, b| a.partial_cmp(b).unwrap())
-                .unwrap_or(0.0); // Compute the minimum RTT.
+                let not_check_degration = his_qoses[start..len].iter().any(|qoses| 
+                    qoses.values().any(|qos| qos.tx_parts.iter().any( |&x| x != 0.0 && x != 1.0 )));
 
                 if qos.channel_rtts.is_some() {
                     let tx_parts =
-                        ChannelBalanceSolver::new(self.balance_anyway).control(qos.clone(), channel_state, min_rtt);
+                        ChannelBalanceSolver::new(self.balance_anyway).control(qos.clone(), channel_state, not_check_degration);
                     (name.clone(), Action::new(Some(tx_parts), None, Some(channel_colors)))
                 } else {
                     let throttle = (qos.throttle + self.throttle_step_size)
