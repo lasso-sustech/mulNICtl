@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-use ndarray::{concatenate, Array, Array1, ArrayBase, Axis, Data, Ix1, Ix2};
+use ndarray::{concatenate, s, Array, Array1, ArrayBase, Axis, Data, Ix1, Ix2};
 use ndarray_linalg::Solve;
 
 /// The simple linear regression model is
@@ -92,6 +92,32 @@ impl LinearRegression {
         match &self.beta {
             None => panic!("The linear regression estimator has to be fitted first!"),
             Some(beta) => X.dot(beta),
+        }
+    }
+
+    /// Find the x values that minimize the absolute difference
+    /// between two linear regression models for general beta.
+    pub fn find_min_difference_x(&self, other: &LinearRegression) -> Option<Array1<f64>> {
+        if let (Some(beta1), Some(beta2)) = (&self.beta, &other.beta) {
+            let delta_beta = beta1 - beta2;
+            let delta_intercept = delta_beta[0]; // Difference in intercept (b1 - b2)
+
+            if delta_beta.slice(s![1..]).iter().all(|&x| x == 0.0) {
+                return None; // Parallel lines with identical slopes
+            }
+
+            // Convert the view to an owned array
+            let delta_beta_owned = delta_beta.slice(s![1..]).to_owned();
+
+            if delta_beta_owned.iter().all(|&x| x == 0.0) {
+                return None; // Parallel lines with identical slopes
+            }
+
+            // Solve for x values
+            let x_values = -delta_intercept / delta_beta_owned;
+            Some(x_values)
+        } else {
+            None // One or both models are not fitted
         }
     }
 }

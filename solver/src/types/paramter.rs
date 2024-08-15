@@ -10,7 +10,11 @@ pub struct HyperParameter<'a> {
     pub maximum_his_len: usize,
     pub ports_tobe_pop: [&'a str; 3],
     pub running_duration: usize,
-    pub ctl_time: usize
+    pub ctl_time: usize,
+    
+    pub balance_time_thres: usize,
+    pub balance_tx_part_thres: f64,
+    pub balance_rtt_thres: f64,
 }
 
 pub(crate) static HYPER_PARAMETER: HyperParameter = {
@@ -29,5 +33,9 @@ pub(crate) static HYPER_PARAMETER: HyperParameter = {
         ports_tobe_pop: ["6209@192", "6210@192", "6211@192"],
         running_duration: 200,
         ctl_time: 100,
+
+        balance_time_thres: 10,
+        balance_tx_part_thres: 0.3,
+        balance_rtt_thres: 0.005,
     }
 };

@@ -9,6 +9,7 @@ use core::str;
 use std::collections::HashMap;
 use std::net::UdpSocket;
 use base64::prelude::*;
+use cores::forward_switch_solver::{self, determine_forward_switch, ForwardSwitchSolver};
 use serde_json::Value;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
@@ -87,28 +88,31 @@ impl Controller {
         if self.history_qos.len() > HYPER_PARAMETER.maximum_his_len {
             self.history_qos.remove(0);
         }
-        
-        if self.ctl_state == CtlState::Normal {
-            let solver = algorithm_selection(&self.glb_state);
-            match solver {
-                Some(solver) => {
-                    let (controls, ctl_state, ctl_task) = solver.control(&self.history_qos, &self.glb_state);
-                    self.ctl_state = ctl_state;
-                    self.ctl_task = ctl_task;
-                    controls
-                },
-                None => HashMap::new(),
-            }
+
+        if self.ctl_state == CtlState::BackSwitch {
+            let solver = BackSwitchSolver::new();
+            let (controls, ctl_state, _) = solver.control(&self.history_qos, self.ctl_task.as_ref().unwrap());
+            self.ctl_state = ctl_state;
+            controls
         }
         else {
-            if self.ctl_state == CtlState::BackSwitch {
-                let solver = BackSwitchSolver::new();
-                let (controls, ctl_state, _) = solver.control(&self.history_qos, self.ctl_task.as_ref().unwrap());
-                self.ctl_state = ctl_state;
+            // determine whether a quick start exist
+            if let Some(ctl_task) = determine_forward_switch(&self.history_qos){
+                let solver = ForwardSwitchSolver::new();
+                let (controls, _, _) =  solver.control(&self.history_qos, &ctl_task);
                 controls
             }
-            else {
-                HashMap::new()
+            else{
+                let solver = algorithm_selection(&self.glb_state);
+                match solver {
+                    Some(solver) => {
+                        let (controls, ctl_state, ctl_task) = solver.control(&self.history_qos, &self.glb_state);
+                        self.ctl_state = ctl_state;
+                        self.ctl_task = ctl_task;
+                        controls
+                    },
+                    None => HashMap::new(),
+                }
             }
         }
     }
