@@ -38,3 +38,9 @@ impl From<(&Statistics, &StaticValue)> for Qos {
         }
     }
 }
+
+impl Qos{
+    pub fn is_single_channel(&self) -> bool {
+        self.tx_parts.iter().all(|&x| x == 1.0 || x == 0.0)
+    }
+}

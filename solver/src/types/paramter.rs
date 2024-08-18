@@ -11,7 +11,10 @@ pub struct HyperParameter<'a> {
     pub ports_tobe_pop: [&'a str; 3],
     pub running_duration: usize,
     pub ctl_time: usize,
+
+    pub his_back_time: usize,
     
+    pub balance_channel_rtt_thres: f64,
     pub balance_time_thres: usize,
     pub balance_tx_part_thres: f64,
     pub balance_rtt_thres: f64,
@@ -34,6 +37,9 @@ pub(crate) static HYPER_PARAMETER: HyperParameter = {
         running_duration: 200,
         ctl_time: 100,
 
+        his_back_time: 5,
+
+        balance_channel_rtt_thres: 0.005,
         balance_time_thres: 10,
         balance_tx_part_thres: 0.3,
         balance_rtt_thres: 0.005,

@@ -9,7 +9,6 @@ use core::str;
 use std::collections::HashMap;
 use std::net::UdpSocket;
 use base64::prelude::*;
-use cores::forward_switch_solver::{self, determine_forward_switch, ForwardSwitchSolver};
 use serde_json::Value;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
@@ -45,13 +44,13 @@ fn algorithm_selection(glb_state: &State) -> Option<Box<dyn DecSolver>>{
         [Color::Yellow] => None,
         [Color::Red]    => Some( Box::new(FileSolver {throttle_step_size: 10.0}) ),
 
-        [Color::Green, Color::Green]    => Some( Box::new( GSolver { balance_anyway: false, throttle_step_size: 10.0,  is_back_switch: true } ) ),
-        [Color::Yellow, Color::Yellow]  => Some( Box::new( GSolver { balance_anyway: true,  throttle_step_size: -10.0, is_back_switch: false} ) ),
-        [Color::Red, Color::Red]        => Some( Box::new( GSolver { balance_anyway: true,  throttle_step_size: -10.0, is_back_switch: false} ) ),
+        [Color::Green, Color::Green]    => Some( Box::new( GSolver { throttle_step_size: 10.0,  is_back_switch: true } ) ),
+        [Color::Yellow, Color::Yellow]  => Some( Box::new( GSolver { throttle_step_size: -10.0, is_back_switch: false} ) ),
+        [Color::Red, Color::Red]        => Some( Box::new( GSolver { throttle_step_size: -10.0, is_back_switch: false} ) ),
 
-        [Color::Green, Color::Yellow] | [Color::Yellow, Color::Green]     => Some( Box::new(GSolver { balance_anyway: false, throttle_step_size: 10.0,  is_back_switch: false}) ),
-        [Color::Green, Color::Red]    | [Color::Red, Color::Green]        => Some( Box::new(GSolver { balance_anyway: false, throttle_step_size: 10.0,  is_back_switch: false}) ),
-        [Color::Yellow, Color::Red]   | [Color::Red, Color::Yellow]       => Some( Box::new(GSolver { balance_anyway: true,  throttle_step_size: -10.0, is_back_switch: false}) ),
+        [Color::Green, Color::Yellow] | [Color::Yellow, Color::Green]     => Some( Box::new(GSolver { throttle_step_size: 10.0,  is_back_switch: false}) ),
+        [Color::Green, Color::Red]    | [Color::Red, Color::Green]        => Some( Box::new(GSolver { throttle_step_size: 10.0,  is_back_switch: false}) ),
+        [Color::Yellow, Color::Red]   | [Color::Red, Color::Yellow]       => Some( Box::new(GSolver { throttle_step_size: -10.0, is_back_switch: false}) ),
 
         _ => None,
     }
@@ -96,25 +95,18 @@ impl Controller {
             controls
         }
         else {
-            // determine whether a quick start exist
-            if let Some(ctl_task) = determine_forward_switch(&self.history_qos){
-                let solver = ForwardSwitchSolver::new();
-                let (controls, _, _) =  solver.control(&self.history_qos, &ctl_task);
-                controls
-            }
-            else{
-                let solver = algorithm_selection(&self.glb_state);
-                match solver {
-                    Some(solver) => {
-                        let (controls, ctl_state, ctl_task) = solver.control(&self.history_qos, &self.glb_state);
-                        self.ctl_state = ctl_state;
-                        self.ctl_task = ctl_task;
-                        controls
-                    },
-                    None => HashMap::new(),
-                }
+            let solver = algorithm_selection(&self.glb_state);
+            match solver {
+                Some(solver) => {
+                    let (controls, ctl_state, ctl_task) = solver.control(&self.history_qos, &self.glb_state);
+                    self.ctl_state = ctl_state;
+                    self.ctl_task = ctl_task;
+                    controls
+                },
+                None => HashMap::new(),
             }
         }
+        // }
     }
 }
 

@@ -27,7 +27,7 @@ impl State{
 
     fn color(rtt: f64, target_rtt: f64, overall_rtt: f64) -> Color{
         if rtt > overall_rtt * 0.8 && rtt < target_rtt && overall_rtt > target_rtt {
-            Color::Yellow
+            Color::Red
         }
         else if rtt > target_rtt {
             Color::Red
@@ -54,5 +54,6 @@ impl State{
 
         self.color = color_map;
     }
+
 }
 
