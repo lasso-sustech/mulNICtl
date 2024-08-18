@@ -12,7 +12,7 @@ use base64::prelude::*;
 use serde_json::Value;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
-use types::paramter::HYPER_PARAMETER;
+use types::parameter::HYPER_PARAMETER;
 
 use crate::cores::back_switch_solver::BackSwitchSolver;
 use crate::types::{action, qos, state, static_value::StaticValue};

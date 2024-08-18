@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use crate::HisQos;
 use crate::{action::Action, qos::Qos, state::State, types::state::Color, CtlRes, CtlState, DecSolver};
-use crate::types::paramter::HYPER_PARAMETER;
+use crate::types::parameter::HYPER_PARAMETER;
 use crate::cores::channel_balancer::ChannelBalanceSolver;
 
 use super::checker::{is_adaptation, is_degration, is_his_back_ever, is_stay_in_channel, determine_back_switch};

@@ -1,4 +1,4 @@
-use crate::{action::Action, state::State, types::{paramter::HYPER_PARAMETER, state::Color}, CtlRes, CtlState, DecSolver, HisQos};
+use crate::{action::Action, state::State, types::{parameter::HYPER_PARAMETER, state::Color}, CtlRes, CtlState, DecSolver, HisQos};
 
 pub struct FileSolver {
     pub throttle_step_size: f64,

@@ -1,4 +1,4 @@
-use crate::{types::{paramter::HYPER_PARAMETER, qos::Qos}, HisQos};
+use crate::{types::{parameter::HYPER_PARAMETER, qos::Qos}, HisQos};
 
 use super::{checker::determine_forward_switch, forward_switch_solver::forward_predict};
 
