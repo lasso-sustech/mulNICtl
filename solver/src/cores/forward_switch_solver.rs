@@ -19,14 +19,14 @@ pub fn forward_predict(qoses: &HisQos, ctl_task: &String) -> Vec<f64> {
         let (X, y) = &reg_vec[idx];
         let mut reg = LinearRegression::new();
         reg.fit(X, y);
-        lr[idx] = reg;
+        lr.push(reg);
     }
     
     let predict = lr[0].find_min_difference_x(&lr[1]);
 
     let tx_parts = if predict.is_some() {
         let res = predict.unwrap();
-        [res[0], res[1]]
+        [res[0], res[0]]
     } else {
         [past_qos.tx_parts[0], past_qos.tx_parts[1]]
     };

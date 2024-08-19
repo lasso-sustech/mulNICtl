@@ -40,12 +40,14 @@ impl ChannelBalanceSolver {
 
         if let (Some(channel_rtts), Some(_rtt)) = (qos.channel_rtts, qos.rtt){
 
-            let diff = (channel_rtts[0] - channel_rtts[1]).abs();
-
+            let diff = match tx_parts.iter().any( |&x| x == 0.0 || x == 1.0) {
+                true => HYPER_PARAMETER.balance_channel_rtt_thres, // control the initial step
+                false => (channel_rtts[0] - channel_rtts[1]).abs(),
+            };
             if diff <= self.epsilon_rtt {
                 return tx_parts;
             }
-            else if diff < HYPER_PARAMETER.balance_channel_rtt_thres{
+            else if diff <= HYPER_PARAMETER.balance_channel_rtt_thres{
                 let step = self.min_step * self.scale_factor * diff / self.epsilon_rtt;
                 tx_parts[0] += if channel_rtts[0] > channel_rtts[1] { -step } else { step };
                 tx_parts[0] = format!("{:.2}", tx_parts[0].clamp(0.0, 1.0)).parse().unwrap();
