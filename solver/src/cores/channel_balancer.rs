@@ -18,7 +18,7 @@ impl ChannelBalanceSolver {
         ChannelBalanceSolver {
             inc_direction: [-1, 1],
             min_step: 0.05,
-            max_step: HYPER_PARAMETER.scale_factor * HYPER_PARAMETER.balance_channel_rtt_thres / HYPER_PARAMETER.epsilon_rtt,
+            max_step: HYPER_PARAMETER.scale_factor * HYPER_PARAMETER.balance_channel_rtt_thres / HYPER_PARAMETER.epsilon_rtt * 0.05,
             epsilon_rtt: HYPER_PARAMETER.epsilon_rtt,
             scale_factor: HYPER_PARAMETER.scale_factor,
             epsilon_prob_upper: 0.6,
