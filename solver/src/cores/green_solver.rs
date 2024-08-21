@@ -13,7 +13,7 @@ pub struct GSolver {
 
 impl DecSolver for GSolver{
     fn control(&self, his_qoses: &HisQos, channel_state: &State) -> CtlRes {
-        let qoses = &his_qoses[0];
+        let qoses = &his_qoses[his_qoses.len() - 1];
         let back_switch_name = match self.is_back_switch {
             true => determine_back_switch(qoses, HYPER_PARAMETER.backward_threshold),
             false => None,

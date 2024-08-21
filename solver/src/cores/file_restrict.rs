@@ -6,7 +6,7 @@ pub struct FileSolver {
 
 impl DecSolver for FileSolver {
     fn control(&self, his_qoses: &HisQos, channel_state: &State) -> CtlRes {
-        let qoses = &his_qoses[0];
+        let qoses = &his_qoses[his_qoses.len() - 1];
         let controls = qoses.into_iter().map(|(name, qos)| {
             let channel_colors: Vec<Color> = qos.channels.iter()
             .filter_map(|channel| channel_state.color.get(channel).cloned())
