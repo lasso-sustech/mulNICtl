@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use ndarray_linalg::Scalar;
+
 use crate::{state::Color, types::{parameter::HYPER_PARAMETER, qos::Qos}, HisQos};
 
 pub fn is_degration( channel_rtt: &Vec<f64>,  tx_parts: &Vec<f64>, rtt: f64) -> bool{
@@ -75,7 +77,7 @@ pub fn determine_forward_switch(his_qoses: &HisQos, task: &String) -> bool {
                 min_tx = tx_part;
                 min_idx = i;
             }
-            if tx_part > max_tx {
+            if tx_part >= max_tx {
                 max_tx = tx_part;
                 max_idx = i;
             }
@@ -102,12 +104,13 @@ pub fn determine_forward_switch(his_qoses: &HisQos, task: &String) -> bool {
             .expect("channel_rtts must be Some for all Qos instances");
 
         // Calculate the RTT differences for the channels.
-        let rtt_diff_0 = (channel_rtts_min[0] - channel_rtts_max[0]).abs();
-        let rtt_diff_1 = (channel_rtts_min[1] - channel_rtts_max[1]).abs();
+        let rtt_diff_0 = channel_rtts_min[0] - channel_rtts_max[0]; // min - max
+        let rtt_diff_1 = channel_rtts_min[1] - channel_rtts_max[1]; // max - min
 
-        // Check if the RTT differences exceed the threshold.
-        if rtt_diff_0 >= HYPER_PARAMETER.balance_rtt_thres || rtt_diff_1 >= HYPER_PARAMETER.balance_rtt_thres {
-            return true;
+        if rtt_diff_0 < 0.0 && rtt_diff_1 > 0.0 {
+            if rtt_diff_0.abs() >= HYPER_PARAMETER.balance_rtt_thres || rtt_diff_1.abs() >= HYPER_PARAMETER.balance_rtt_thres {
+                return true;
+            }
         }
     }
 
