@@ -1,16 +1,14 @@
 use std::collections::HashMap;
 
-use ndarray_linalg::Scalar;
-
 use crate::{state::Color, types::{parameter::HYPER_PARAMETER, qos::Qos}, HisQos};
 
 pub fn is_degration( channel_rtt: &Vec<f64>,  tx_parts: &Vec<f64>, rtt: f64) -> bool{
     let reference_rtt = channel_rtt[0] * HYPER_PARAMETER.degration_threshold;
     if tx_parts[0] >= HYPER_PARAMETER.degration_tx_part_threshold && rtt > reference_rtt{
-        false
+        true
     }
     else{
-        true
+        false
     }
 }
 
