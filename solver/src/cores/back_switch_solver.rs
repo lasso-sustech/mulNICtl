@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use ndarray::{Array, Array1, Array2};
 
-use crate::{action::Action, cores::prediction::LinearRegression, qos::Qos, CenSolver, CtlRes, CtlState, HisQos};
+use crate::{action::Action, cores::prediction::LinearRegression, qos::Qos, types::parameter::{HyperParameter, HYPER_PARAMETER}, CenSolver, CtlRes, CtlState, HisQos};
 
 
 pub struct BackSwitchSolver {
@@ -43,9 +43,9 @@ impl CenSolver for BackSwitchSolver {
         
         let mut controls = HashMap::new();
 
-        let tx_parts = if res[0] < current_qos.target_rtt * 0.6 {
+        let tx_parts = if res[0] < current_qos.target_rtt * HYPER_PARAMETER.back_off_rtt_threshold_factor {
             [1.0, 1.0]
-        } else if res[1] < current_qos.target_rtt * 0.6 {
+        } else if res[1] < current_qos.target_rtt * HYPER_PARAMETER.back_off_rtt_threshold_factor {
             [0.0, 0.0]
         }
         else{

@@ -13,6 +13,7 @@ pub struct HyperParameter<'a> {
     pub ctl_time: usize,
 
     pub his_back_time: usize,
+    pub back_off_rtt_threshold_factor: f64, // Threshold used to determine the reference backoff time  
     
     pub balance_channel_rtt_thres: f64,
     pub balance_time_thres: usize,
@@ -38,6 +39,7 @@ pub(crate) static HYPER_PARAMETER: HyperParameter = {
         ctl_time: 100,
 
         his_back_time: 5,
+        back_off_rtt_threshold_factor: 0.6,
 
         balance_channel_rtt_thres: 0.005,
         balance_time_thres: 10,
